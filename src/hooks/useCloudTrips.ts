@@ -38,6 +38,26 @@ const readLocalTrips = () => {
 const serializeTrips = (trips: Trip[]) =>
   JSON.stringify(trips);
 
+const getErrorMessage = (
+  error: unknown,
+  fallback: string
+) => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (
+    error &&
+    typeof error === "object" &&
+    "message" in error &&
+    typeof error.message === "string"
+  ) {
+    return error.message;
+  }
+
+  return fallback;
+};
+
 export const useCloudTrips = (
   session: Session | null
 ) => {
@@ -105,9 +125,10 @@ export const useCloudTrips = (
 
         setStatus("error");
         setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "Could not load trips."
+          getErrorMessage(
+            error,
+            "Could not load trips."
+          )
         );
       } finally {
         setIsLoading(false);
@@ -229,9 +250,10 @@ export const useCloudTrips = (
         } catch (error) {
           setStatus("error");
           setErrorMessage(
-            error instanceof Error
-              ? error.message
-              : "Could not save trips."
+            getErrorMessage(
+              error,
+              "Could not save trips."
+            )
           );
         }
       }, 500);

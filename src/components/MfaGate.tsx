@@ -157,7 +157,7 @@ function MfaGate({
     setIsWorking(true);
     setMessage("");
 
-    const { error } =
+    const { data, error } =
       await supabase.auth.mfa.challengeAndVerify(
         {
           factorId: activeFactorId,
@@ -170,6 +170,24 @@ function MfaGate({
     if (error) {
       setMessage(error.message);
       return;
+    }
+
+    if (
+      data.access_token &&
+      data.refresh_token
+    ) {
+      const { error: sessionError } =
+        await supabase.auth.setSession({
+          access_token:
+            data.access_token,
+          refresh_token:
+            data.refresh_token,
+        });
+
+      if (sessionError) {
+        setMessage(sessionError.message);
+        return;
+      }
     }
 
     setCode("");

@@ -1,73 +1,60 @@
-# React + TypeScript + Vite
+# Family Travel Hub
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A shared family trip planner built with React, Vite, GitHub Pages, and Supabase Auth.
 
-Currently, two official plugins are available:
+## Local Setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+1. Create a free Supabase project.
+2. In Supabase SQL Editor, run `supabase/schema.sql`.
+3. Create the first family row by running the commented `insert into public.families` statement at the bottom of `supabase/schema.sql`.
+4. Copy the returned family UUID.
+5. Copy `.env.example` to `.env.local` and fill in:
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_ANON_KEY=...
+VITE_SUPABASE_FAMILY_ID=...
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+6. Start the app:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
+
+## Family Access
+
+Each family member should create their own account in the app. After they sign up, add their user to `public.family_members` from the Supabase SQL Editor:
+
+```sql
+insert into public.family_members (family_id, user_id, role)
+select 'YOUR_FAMILY_UUID', id, 'member'
+from auth.users
+where email in ('person@example.com');
+```
+
+Row Level Security is enabled. A signed-in user can only read or change trips for a family where they have a `family_members` row.
+
+## MFA
+
+The app requires two-factor authentication after login. Each user must scan the QR code with an authenticator app and verify the 6-digit code before trip details are shown.
+
+## GitHub Pages
+
+1. Push this repo to GitHub.
+2. In GitHub, open the repo settings.
+3. Go to `Settings > Secrets and variables > Actions`.
+4. Add these repository secrets:
+
+```text
+VITE_SUPABASE_URL
+VITE_SUPABASE_ANON_KEY
+VITE_SUPABASE_FAMILY_ID
+```
+
+5. Go to `Settings > Pages`.
+6. Set the source to `GitHub Actions`.
+7. Push to `main`, or run the `Deploy to GitHub Pages` workflow manually.
+
+The Supabase anon key is safe to include in a browser app when Row Level Security is configured. Never put the Supabase service role key in this app.

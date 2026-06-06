@@ -2,9 +2,17 @@ import type { Flight } from "../types/Flight";
 
 type Props = {
   flight: Flight;
+
+  onDelete: () => void;
+
+  onEdit: () => void;
 };
 
-function FlightCard({ flight }: Props) {
+function FlightCard({
+  flight,
+  onDelete,
+  onEdit,
+}: Props) {
   return (
     <div
       style={{
@@ -50,6 +58,43 @@ function FlightCard({ flight }: Props) {
     💺 {flight.cabin}
   </p>
 )}
+<button
+  onClick={(e) => {
+    e.stopPropagation();
+
+    onEdit();
+  }}
+  style={{
+    marginTop: "10px",
+    marginRight: "10px",
+    padding: "6px 10px",
+    borderRadius: "8px",
+    border: "none",
+    background: "#2563eb",
+    color: "white",
+    cursor: "pointer",
+  }}
+>
+  ✏ Edit Flight
+</button>
+<button
+  onClick={(e) => {
+    e.stopPropagation();
+
+    onDelete();
+  }}
+  style={{
+    marginTop: "10px",
+    padding: "6px 10px",
+    borderRadius: "8px",
+    border: "none",
+    background: "#dc2626",
+    color: "white",
+    cursor: "pointer",
+  }}
+>
+  🗑 Delete Flight
+</button>
     </div>
   );
 }

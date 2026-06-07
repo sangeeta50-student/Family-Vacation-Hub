@@ -6,6 +6,12 @@ import { supabase } from "../lib/supabase";
 
 type AuthMode = "sign-in" | "sign-up";
 
+const getEmailRedirectTo = () =>
+  new URL(
+    import.meta.env.BASE_URL,
+    window.location.origin
+  ).toString();
+
 function AuthScreen() {
   const [mode, setMode] =
     useState<AuthMode>("sign-in");
@@ -42,6 +48,10 @@ function AuthScreen() {
         : supabase.auth.signUp({
             email,
             password,
+            options: {
+              emailRedirectTo:
+                getEmailRedirectTo(),
+            },
           });
 
     const { error } =

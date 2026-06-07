@@ -21,6 +21,7 @@ function CarCard({
 
   return (
     <div
+      className="info-card"
       style={{
         border: "1px solid #ddd",
         borderRadius: "12px",
@@ -85,6 +86,7 @@ function CarCard({
 
       {car.notes && (
         <div
+          className="notes-block"
           style={{
             marginTop: "10px",
             padding: "10px",

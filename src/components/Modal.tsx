@@ -11,6 +11,7 @@ function Modal({
 }: ModalProps) {
   return (
     <div
+      className="modal-overlay"
       onClick={onClose}
       style={{
         position: "fixed",
@@ -27,6 +28,7 @@ function Modal({
       }}
     >
       <div
+        className="modal-content"
         onClick={(e) =>
           e.stopPropagation()
         }
@@ -34,13 +36,16 @@ function Modal({
           background: "white",
           padding: "20px",
           borderRadius: "16px",
-          minWidth: "500px",
+          boxSizing: "border-box",
+          minWidth: "min(500px, calc(100vw - 32px))",
           maxWidth: "90vw",
           maxHeight: "90vh",
           overflowY: "auto",
+          overflowX: "hidden",
         }}
       >
         <div
+          className="modal-header"
           style={{
             display: "flex",
             justifyContent:

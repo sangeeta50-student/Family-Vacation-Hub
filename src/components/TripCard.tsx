@@ -15,6 +15,7 @@ function TripCard({
 }: TripCardProps) {
   return (
     <div
+      className="trip-card"
       style={{
         background: "white",
         borderRadius: "16px",

@@ -1153,6 +1153,7 @@ const getDeleteMessage = () => {
       onVerified={handleMfaVerified}
     >
     <div
+      className="app-shell"
       style={{
         padding: "20px",
         background: "#f4f7fb",
@@ -1161,6 +1162,7 @@ const getDeleteMessage = () => {
       }}
     >
       <div
+        className="app-header"
         style={{
           alignItems: "center",
           display: "flex",
@@ -1207,6 +1209,7 @@ const getDeleteMessage = () => {
         </div>
 
         <div
+          className="account-actions"
           style={{
             alignItems: "center",
             display: "flex",
@@ -1231,6 +1234,7 @@ const getDeleteMessage = () => {
         </div>
       </div>
       <button
+        className="primary-action"
         onClick={() =>
           setShowTripModal(true)
         }
@@ -1279,6 +1283,7 @@ const getDeleteMessage = () => {
 
     {selectedTripIndex === index && (
       <div
+        className="trip-detail-panel"
         style={{
           background: "white",
           padding: "16px",
@@ -1293,6 +1298,7 @@ const getDeleteMessage = () => {
         
 
         <div
+  className="trip-action-bar"
   style={{
     display: "flex",
     gap: "16px",
@@ -1795,6 +1801,7 @@ const getDeleteMessage = () => {
     }
   >
     <div
+      className="stack-form narrow-form"
       style={{
         display: "flex",
         flexDirection: "column",
@@ -1977,6 +1984,7 @@ const getDeleteMessage = () => {
       />
 
       <div
+        className="form-actions"
         style={{
           display: "grid",
           gap: "12px",
@@ -2251,6 +2259,7 @@ const getDeleteMessage = () => {
     }
   >
     <div
+      className="stack-form narrow-form"
       style={{
         display: "flex",
         flexDirection: "column",
@@ -2281,6 +2290,7 @@ const getDeleteMessage = () => {
       />
 
       <div
+        className="form-actions"
         style={{
           display: "flex",
           gap: "10px",
@@ -2346,6 +2356,7 @@ const getDeleteMessage = () => {
     }}
   >
     <div
+      className="form-actions"
       style={{
         display: "flex",
         flexDirection: "column",

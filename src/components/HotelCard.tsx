@@ -15,6 +15,7 @@ function HotelCard({
 }: Props) {
   return (
     <div
+      className="info-card"
       style={{
         border: "1px solid #ddd",
         borderRadius: "12px",

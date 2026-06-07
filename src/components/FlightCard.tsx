@@ -15,6 +15,7 @@ function FlightCard({
 }: Props) {
   return (
     <div
+      className="info-card"
       style={{
         border: "1px solid #ddd",
         borderRadius: "12px",
@@ -61,6 +62,7 @@ function FlightCard({
 
 {flight.notes && (
   <div
+    className="notes-block"
     style={{
       background: "#f8fafc",
       borderLeft:

@@ -73,8 +73,27 @@ button {
   flex-wrap: wrap;
 }
 
+.modal-content input:not([type="checkbox"]):not([type="radio"]),
 .modal-content textarea {
   width: 100% !important;
+}
+
+.field-row {
+  min-width: 0;
+}
+
+.checkbox-row label {
+  align-items: center;
+  display: inline-flex;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.checkbox-row input[type="checkbox"] {
+  flex: 0 0 auto;
+  height: 16px;
+  margin: 0;
+  width: 16px;
 }
 
 @media (max-width: 640px) {
@@ -165,8 +184,24 @@ button {
     margin: 0;
   }
 
-  .modal-content input,
+  .modal-content input:not([type="checkbox"]):not([type="radio"]),
   .modal-content textarea {
+    width: 100% !important;
+  }
+
+  .activity-form {
+    width: 100%;
+  }
+
+  .activity-form .field-row {
+    display: grid !important;
+    gap: 10px !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    width: 100%;
+  }
+
+  .activity-form .field-row input {
+    min-width: 0 !important;
     width: 100% !important;
   }
 
@@ -192,6 +227,10 @@ button {
 
 @media (max-width: 420px) {
   .trip-action-bar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .activity-form .field-row {
     grid-template-columns: minmax(0, 1fr);
   }
 }

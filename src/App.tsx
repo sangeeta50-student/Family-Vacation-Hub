@@ -1482,6 +1482,7 @@ const getDeleteMessage = () => {
     
 
     <div
+  className="stack-form activity-form"
   style={{
     display: "flex",
     flexDirection: "column",
@@ -1500,6 +1501,7 @@ const getDeleteMessage = () => {
   />
 
   <div
+    className="field-row"
     style={{
       display: "flex",
       gap: "12px",
@@ -1555,6 +1557,7 @@ const getDeleteMessage = () => {
 </div>
 
 <div
+  className="checkbox-row"
   style={{
     marginTop: "10px",
   }}
@@ -1574,6 +1577,7 @@ const getDeleteMessage = () => {
   </label>
 </div>
 <div
+  className="form-actions"
   style={{
     display: "flex",
     gap: "10px",

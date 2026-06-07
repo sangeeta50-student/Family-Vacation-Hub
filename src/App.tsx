@@ -36,7 +36,21 @@ import { useCloudTrips } from "./hooks/useCloudTrips";
 
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
 
-import type { Trip } from "./types/Trip";
+import type { Flight } from "./types/Flight";
+
+import type { Activity } from "./types/Activity";
+
+import type {
+  CarRental,
+  Hotel,
+  Trip,
+} from "./types/Trip";
+
+type SectionKind =
+  | "flights"
+  | "hotels"
+  | "cars"
+  | "activities";
 
 type DeleteTarget =
   | {
@@ -74,6 +88,23 @@ function App() {
   const [isMfaVerified, setIsMfaVerified] =
   useState(false);
 
+  const [defaultExpanded] =
+  useState(() => {
+    if (typeof window === "undefined") {
+      return true;
+    }
+
+    return !window.matchMedia(
+      "(max-width: 640px)"
+    ).matches;
+  });
+
+  const [openSections, setOpenSections] =
+  useState<Record<string, boolean>>({});
+
+  const [openItems, setOpenItems] =
+  useState<Record<string, boolean>>({});
+
   const hasConfiguredPassword = Boolean(
     session?.user.user_metadata
       ?.passwordConfigured
@@ -109,6 +140,100 @@ function App() {
     setSession(data.session);
     setIsMfaVerified(true);
   }, []);
+
+  const getTripKey = (
+    trip: Trip,
+    tripIndex: number
+  ) => trip.id || `trip-${tripIndex}`;
+
+  const getSectionKey = (
+    trip: Trip,
+    tripIndex: number,
+    section: SectionKind
+  ) =>
+    `${getTripKey(
+      trip,
+      tripIndex
+    )}-${section}`;
+
+  const getItemKey = (
+    trip: Trip,
+    tripIndex: number,
+    section: SectionKind,
+    itemIndex: number
+  ) =>
+    `${getSectionKey(
+      trip,
+      tripIndex,
+      section
+    )}-${itemIndex}`;
+
+  const isSectionOpen = (key: string) =>
+    openSections[key] ?? defaultExpanded;
+
+  const isItemOpen = (key: string) =>
+    openItems[key] ?? defaultExpanded;
+
+  const toggleSection = (key: string) => {
+    setOpenSections((current) => ({
+      ...current,
+      [key]: !isSectionOpen(key),
+    }));
+  };
+
+  const toggleItem = (key: string) => {
+    setOpenItems((current) => ({
+      ...current,
+      [key]: !isItemOpen(key),
+    }));
+  };
+
+  const flightSummary = (
+    flight: Flight
+  ) =>
+    [
+      flight.flightNumber || "Flight",
+      flight.from && flight.to
+        ? `${flight.from} → ${flight.to}`
+        : "",
+      flight.date,
+      flight.departureTime,
+    ]
+      .filter(Boolean)
+      .join(" • ");
+
+  const hotelSummary = (hotel: Hotel) =>
+    [
+      hotel.name || "Hotel",
+      hotel.checkInDate,
+      hotel.address,
+    ]
+      .filter(Boolean)
+      .join(" • ");
+
+  const carSummary = (car: CarRental) =>
+    [
+      car.company ||
+        car.vehicle ||
+        car.vehicleType ||
+        "Car Rental",
+      car.pickupDate,
+      car.pickupLocation,
+    ]
+      .filter(Boolean)
+      .join(" • ");
+
+  const activitySummary = (
+    activity: Activity
+  ) =>
+    [
+      activity.name || "Activity",
+      activity.date,
+      activity.time,
+      activity.location,
+    ]
+      .filter(Boolean)
+      .join(" • ");
 
   const [showTripModal,
   setShowTripModal] =
@@ -1111,6 +1236,27 @@ const getDeleteMessage = () => {
   }"?`;
 };
 
+const renderToggleButton = (
+  label: string,
+  isOpen: boolean,
+  onToggle: () => void,
+  className: string
+) => (
+  <button
+    className={className}
+    onClick={(event) => {
+      event.stopPropagation();
+      onToggle();
+    }}
+    type="button"
+  >
+    <span aria-hidden="true">
+      {isOpen ? "▼" : "▶"}
+    </span>
+    <span>{label}</span>
+  </button>
+);
+
   if (!isSupabaseConfigured) {
     return <SupabaseSetupMissing />;
   }
@@ -1284,6 +1430,9 @@ const getDeleteMessage = () => {
     {selectedTripIndex === index && (
       <div
         className="trip-detail-panel"
+        onClick={(event) =>
+          event.stopPropagation()
+        }
         style={{
           background: "white",
           padding: "16px",
@@ -2150,107 +2299,336 @@ const getDeleteMessage = () => {
     </button>
   </Modal>
 )}
-<h3>✈ Flights</h3>
+{(() => {
+  const flightSectionKey =
+    getSectionKey(
+      trip,
+      index,
+      "flights"
+    );
+  const hotelSectionKey =
+    getSectionKey(
+      trip,
+      index,
+      "hotels"
+    );
+  const carSectionKey =
+    getSectionKey(
+      trip,
+      index,
+      "cars"
+    );
+  const activitySectionKey =
+    getSectionKey(
+      trip,
+      index,
+      "activities"
+    );
 
-{trip.flights?.length ? (
-  trip.flights.map(
-    (flight, flightIndex) => (
-      <FlightCard
-        key={flightIndex}
-        flight={flight}
-        onDelete={() =>
-          deleteFlight(
-            flightIndex
-          )
-        }
-        onEdit={() =>
-          editFlight(
-            flightIndex
-          )
-        }
-      />
-    )
-  )
-) : (
-  <p>No flights added yet.</p>
-)}
-<h3>🏨 Hotels</h3>
+  const flightsOpen =
+    isSectionOpen(
+      flightSectionKey
+    );
+  const hotelsOpen =
+    isSectionOpen(
+      hotelSectionKey
+    );
+  const carsOpen =
+    isSectionOpen(carSectionKey);
+  const activitiesOpen =
+    isSectionOpen(
+      activitySectionKey
+    );
 
-{trip.hotels?.length ? (
-  trip.hotels.map(
-    (hotel, hotelIndex) => (
-      <HotelCard
-        key={hotelIndex}
-        hotel={hotel}
-        onDelete={() =>
-          deleteHotel(
-            hotelIndex
-          )
-        }
-        onEdit={() =>
-          editHotel(
-            hotelIndex
-          )
-        }
-      />
-    )
-  )
-) : (
-  <p>No hotels added yet.</p>
-)}
-<h3>🚗 Cars</h3>
+  return (
+    <div className="collapsible-sections">
+      <section className="collapsible-section">
+        {renderToggleButton(
+          `Flights (${trip.flights?.length || 0})`,
+          flightsOpen,
+          () =>
+            toggleSection(
+              flightSectionKey
+            ),
+          "section-toggle"
+        )}
 
-{trip.cars?.length ? (
-  trip.cars.map(
-    (car, carIndex) => (
-      <CarCard
-        key={carIndex}
-        car={car}
-        onDelete={() =>
-          deleteCar(carIndex)
-        }
-        onEdit={() =>
-          editCar(carIndex)
-        }
-      />
-    )
-  )
-) : (
-  <p>No cars added yet.</p>
-)}
-<h3>
-  🎟 Planned Activities (
-  {trip.activities?.length || 0}
-  )
-</h3>
+        {flightsOpen && (
+          <div className="section-body">
+            {trip.flights?.length ? (
+              trip.flights.map(
+                (
+                  flight,
+                  flightIndex
+                ) => {
+                  const itemKey =
+                    getItemKey(
+                      trip,
+                      index,
+                      "flights",
+                      flightIndex
+                    );
+                  const itemOpen =
+                    isItemOpen(itemKey);
 
-{trip.activities?.length ? (
-  trip.activities.map(
-    (
-      activity,
-      activityIndex
-    ) => (
-      <ActivityCard
-        key={activityIndex}
-        activity={activity}
-        onDelete={() =>
-          deleteActivity(
-            activityIndex
-          )
-        }
-        onEdit={() =>
-          editActivity(
-            activityIndex
-          )
-        }
-      />
-    )
-  )
-) : (
-  <p>
-    No activities added yet.
-  </p>
-)}
+                  return (
+                    <div
+                      className="collapsible-item"
+                      key={itemKey}
+                    >
+                      {renderToggleButton(
+                        flightSummary(
+                          flight
+                        ),
+                        itemOpen,
+                        () =>
+                          toggleItem(
+                            itemKey
+                          ),
+                        "item-toggle"
+                      )}
+
+                      {itemOpen && (
+                        <FlightCard
+                          flight={flight}
+                          onDelete={() =>
+                            deleteFlight(
+                              flightIndex
+                            )
+                          }
+                          onEdit={() =>
+                            editFlight(
+                              flightIndex
+                            )
+                          }
+                        />
+                      )}
+                    </div>
+                  );
+                }
+              )
+            ) : (
+              <p>No flights added yet.</p>
+            )}
+          </div>
+        )}
+      </section>
+
+      <section className="collapsible-section">
+        {renderToggleButton(
+          `Hotels (${trip.hotels?.length || 0})`,
+          hotelsOpen,
+          () =>
+            toggleSection(
+              hotelSectionKey
+            ),
+          "section-toggle"
+        )}
+
+        {hotelsOpen && (
+          <div className="section-body">
+            {trip.hotels?.length ? (
+              trip.hotels.map(
+                (
+                  hotel,
+                  hotelIndex
+                ) => {
+                  const itemKey =
+                    getItemKey(
+                      trip,
+                      index,
+                      "hotels",
+                      hotelIndex
+                    );
+                  const itemOpen =
+                    isItemOpen(itemKey);
+
+                  return (
+                    <div
+                      className="collapsible-item"
+                      key={itemKey}
+                    >
+                      {renderToggleButton(
+                        hotelSummary(
+                          hotel
+                        ),
+                        itemOpen,
+                        () =>
+                          toggleItem(
+                            itemKey
+                          ),
+                        "item-toggle"
+                      )}
+
+                      {itemOpen && (
+                        <HotelCard
+                          hotel={hotel}
+                          onDelete={() =>
+                            deleteHotel(
+                              hotelIndex
+                            )
+                          }
+                          onEdit={() =>
+                            editHotel(
+                              hotelIndex
+                            )
+                          }
+                        />
+                      )}
+                    </div>
+                  );
+                }
+              )
+            ) : (
+              <p>No hotels added yet.</p>
+            )}
+          </div>
+        )}
+      </section>
+
+      <section className="collapsible-section">
+        {renderToggleButton(
+          `Cars (${trip.cars?.length || 0})`,
+          carsOpen,
+          () =>
+            toggleSection(carSectionKey),
+          "section-toggle"
+        )}
+
+        {carsOpen && (
+          <div className="section-body">
+            {trip.cars?.length ? (
+              trip.cars.map(
+                (car, carIndex) => {
+                  const itemKey =
+                    getItemKey(
+                      trip,
+                      index,
+                      "cars",
+                      carIndex
+                    );
+                  const itemOpen =
+                    isItemOpen(itemKey);
+
+                  return (
+                    <div
+                      className="collapsible-item"
+                      key={itemKey}
+                    >
+                      {renderToggleButton(
+                        carSummary(car),
+                        itemOpen,
+                        () =>
+                          toggleItem(
+                            itemKey
+                          ),
+                        "item-toggle"
+                      )}
+
+                      {itemOpen && (
+                        <CarCard
+                          car={car}
+                          onDelete={() =>
+                            deleteCar(
+                              carIndex
+                            )
+                          }
+                          onEdit={() =>
+                            editCar(
+                              carIndex
+                            )
+                          }
+                        />
+                      )}
+                    </div>
+                  );
+                }
+              )
+            ) : (
+              <p>No cars added yet.</p>
+            )}
+          </div>
+        )}
+      </section>
+
+      <section className="collapsible-section">
+        {renderToggleButton(
+          `Activities (${
+            trip.activities?.length || 0
+          })`,
+          activitiesOpen,
+          () =>
+            toggleSection(
+              activitySectionKey
+            ),
+          "section-toggle"
+        )}
+
+        {activitiesOpen && (
+          <div className="section-body">
+            {trip.activities?.length ? (
+              trip.activities.map(
+                (
+                  activity,
+                  activityIndex
+                ) => {
+                  const itemKey =
+                    getItemKey(
+                      trip,
+                      index,
+                      "activities",
+                      activityIndex
+                    );
+                  const itemOpen =
+                    isItemOpen(itemKey);
+
+                  return (
+                    <div
+                      className="collapsible-item"
+                      key={itemKey}
+                    >
+                      {renderToggleButton(
+                        activitySummary(
+                          activity
+                        ),
+                        itemOpen,
+                        () =>
+                          toggleItem(
+                            itemKey
+                          ),
+                        "item-toggle"
+                      )}
+
+                      {itemOpen && (
+                        <ActivityCard
+                          activity={activity}
+                          onDelete={() =>
+                            deleteActivity(
+                              activityIndex
+                            )
+                          }
+                          onEdit={() =>
+                            editActivity(
+                              activityIndex
+                            )
+                          }
+                        />
+                      )}
+                    </div>
+                  );
+                }
+              )
+            ) : (
+              <p>
+                No activities added yet.
+              </p>
+            )}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+})()}
       </div>
     )}
   </div>

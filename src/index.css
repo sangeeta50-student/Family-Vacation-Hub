@@ -96,6 +96,67 @@ button {
   width: 16px;
 }
 
+.collapsible-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.collapsible-section {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.section-toggle,
+.item-toggle {
+  align-items: center;
+  background: white;
+  border: 0;
+  color: #0f172a;
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-start;
+  padding: 10px 12px;
+  text-align: left;
+  width: 100%;
+}
+
+.section-toggle {
+  background: #f8fafc;
+  font-weight: 700;
+}
+
+.item-toggle {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.section-toggle span:last-child,
+.item-toggle span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.section-body {
+  padding: 10px;
+}
+
+.section-body > p {
+  color: #64748b;
+  margin: 4px 0;
+}
+
+.collapsible-item {
+  margin-bottom: 10px;
+}
+
+.collapsible-item:last-child {
+  margin-bottom: 0;
+}
+
 @media (max-width: 640px) {
   .app-shell {
     padding: 12px !important;
@@ -156,6 +217,16 @@ button {
   .info-card h3 {
     font-size: 18px;
     line-height: 1.2;
+  }
+
+  .collapsible-sections {
+    gap: 10px;
+  }
+
+  .section-toggle,
+  .item-toggle {
+    min-height: 42px;
+    padding: 10px;
   }
 
   .modal-overlay {

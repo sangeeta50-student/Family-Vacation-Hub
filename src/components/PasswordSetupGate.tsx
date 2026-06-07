@@ -4,17 +4,23 @@ import {
 import type { FormEvent } from "react";
 import { supabase } from "../lib/supabase";
 
-function AuthScreen() {
-  const [email, setEmail] =
-    useState("");
+type PasswordSetupGateProps = {
+  onPasswordSet: () => void;
+};
+
+function PasswordSetupGate({
+  onPasswordSet,
+}: PasswordSetupGateProps) {
   const [password, setPassword] =
+    useState("");
+  const [confirmPassword, setConfirmPassword] =
     useState("");
   const [message, setMessage] =
     useState("");
   const [isSubmitting, setIsSubmitting] =
     useState(false);
 
-  const submitAuth = async (
+  const submitPassword = async (
     event: FormEvent
   ) => {
     event.preventDefault();
@@ -26,16 +32,30 @@ function AuthScreen() {
       return;
     }
 
+    if (password.length < 6) {
+      setMessage(
+        "Password must be at least 6 characters."
+      );
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setMessage(
+        "Passwords do not match."
+      );
+      return;
+    }
+
     setIsSubmitting(true);
     setMessage("");
 
     const { error } =
-      await supabase.auth.signInWithPassword(
-        {
-          email,
-          password,
-        }
-      );
+      await supabase.auth.updateUser({
+        password,
+        data: {
+          passwordConfigured: true,
+        },
+      });
 
     setIsSubmitting(false);
 
@@ -44,16 +64,9 @@ function AuthScreen() {
       return;
     }
 
-    const { error: updateError } =
-      await supabase.auth.updateUser({
-        data: {
-          passwordConfigured: true,
-        },
-      });
-
-    if (updateError) {
-      setMessage(updateError.message);
-    }
+    setPassword("");
+    setConfirmPassword("");
+    onPasswordSet();
   };
 
   return (
@@ -68,7 +81,7 @@ function AuthScreen() {
       }}
     >
       <form
-        onSubmit={submitAuth}
+        onSubmit={submitPassword}
         style={{
           background: "white",
           borderRadius: "12px",
@@ -87,7 +100,7 @@ function AuthScreen() {
             marginTop: 0,
           }}
         >
-          Family Travel Hub
+          Create your password
         </h1>
 
         <p
@@ -95,30 +108,29 @@ function AuthScreen() {
             marginTop: 0,
           }}
         >
-          Sign in to sync trip details
-          with the family.
+          Set a password before using the
+          family travel hub.
         </p>
 
         <input
-          autoComplete="email"
-          placeholder="Email"
-          type="email"
-          value={email}
-          onChange={(event) =>
-            setEmail(
-              event.target.value
-            )
-          }
-        />
-
-        <input
-          autoComplete="current-password"
+          autoComplete="new-password"
           minLength={6}
           placeholder="Password"
           type="password"
           value={password}
           onChange={(event) =>
-            setPassword(
+            setPassword(event.target.value)
+          }
+        />
+
+        <input
+          autoComplete="new-password"
+          minLength={6}
+          placeholder="Confirm password"
+          type="password"
+          value={confirmPassword}
+          onChange={(event) =>
+            setConfirmPassword(
               event.target.value
             )
           }
@@ -140,23 +152,12 @@ function AuthScreen() {
           type="submit"
         >
           {isSubmitting
-            ? "Please wait..."
-            : "Sign In"}
+            ? "Saving..."
+            : "Save Password"}
         </button>
-
-        <p
-          style={{
-            color: "#64748b",
-            fontSize: "14px",
-            margin: 0,
-          }}
-        >
-          Access is invite-only. Ask the
-          family admin to invite you.
-        </p>
       </form>
     </div>
   );
 }
 
-export default AuthScreen;
+export default PasswordSetupGate;

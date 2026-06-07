@@ -16,6 +16,8 @@ import ActivityCard from "./components/ActivityCard";
 
 import AuthScreen from "./components/AuthScreen";
 
+import PasswordSetupGate from "./components/PasswordSetupGate";
+
 import MfaGate from "./components/MfaGate";
 
 import Modal from "./components/Modal";
@@ -85,6 +87,19 @@ function App() {
   const handleMfaVerified =
   useCallback(() => {
     setIsMfaVerified(true);
+  }, []);
+
+  const handlePasswordSet =
+  useCallback(async () => {
+    if (!supabase) {
+      return;
+    }
+
+    const { data } =
+      await supabase.auth.getSession();
+
+    setSession(data.session);
+    setIsMfaVerified(false);
   }, []);
 
   const [showTripModal,
@@ -1108,6 +1123,17 @@ const getDeleteMessage = () => {
 
   if (!session) {
     return <AuthScreen />;
+  }
+
+  if (
+    !session.user.user_metadata
+      ?.passwordConfigured
+  ) {
+    return (
+      <PasswordSetupGate
+        onPasswordSet={handlePasswordSet}
+      />
+    );
   }
 
   return (

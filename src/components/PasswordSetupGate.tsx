@@ -5,10 +5,12 @@ import type { FormEvent } from "react";
 import { supabase } from "../lib/supabase";
 
 type PasswordSetupGateProps = {
+  onBackToSignIn: () => void;
   onPasswordSet: () => void;
 };
 
 function PasswordSetupGate({
+  onBackToSignIn,
   onPasswordSet,
 }: PasswordSetupGateProps) {
   const [password, setPassword] =
@@ -154,6 +156,14 @@ function PasswordSetupGate({
           {isSubmitting
             ? "Saving..."
             : "Save Password"}
+        </button>
+
+        <button
+          disabled={isSubmitting}
+          onClick={onBackToSignIn}
+          type="button"
+        >
+          Back to sign in
         </button>
       </form>
     </div>

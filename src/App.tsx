@@ -378,6 +378,8 @@ useEffect(() => {
 }, []);
 
 const signOut = () => {
+  setSession(null);
+  setIsMfaVerified(false);
   void supabase?.auth.signOut();
 };
 
@@ -1139,6 +1141,7 @@ const getDeleteMessage = () => {
         onVerified={handleMfaVerified}
       >
         <PasswordSetupGate
+          onBackToSignIn={signOut}
           onPasswordSet={handlePasswordSet}
         />
       </MfaGate>

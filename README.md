@@ -25,7 +25,7 @@ npm run dev
 
 ## Family Access
 
-Each family member should create their own account in the app. After they sign up, add their user to `public.family_members` from the Supabase SQL Editor:
+Access is invite-only. Disable public signups in Supabase Auth, then invite each family member from the Supabase dashboard. After the user accepts the invite and appears in `auth.users`, add them to `public.family_members` from the Supabase SQL Editor:
 
 ```sql
 insert into public.family_members (family_id, user_id, role)

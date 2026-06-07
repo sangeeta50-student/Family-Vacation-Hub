@@ -4,17 +4,7 @@ import {
 import type { FormEvent } from "react";
 import { supabase } from "../lib/supabase";
 
-type AuthMode = "sign-in" | "sign-up";
-
-const getEmailRedirectTo = () =>
-  new URL(
-    import.meta.env.BASE_URL,
-    window.location.origin
-  ).toString();
-
 function AuthScreen() {
-  const [mode, setMode] =
-    useState<AuthMode>("sign-in");
   const [email, setEmail] =
     useState("");
   const [password, setPassword] =
@@ -39,37 +29,19 @@ function AuthScreen() {
     setIsSubmitting(true);
     setMessage("");
 
-    const authRequest =
-      mode === "sign-in"
-        ? supabase.auth.signInWithPassword({
-            email,
-            password,
-          })
-        : supabase.auth.signUp({
-            email,
-            password,
-            options: {
-              emailRedirectTo:
-                getEmailRedirectTo(),
-            },
-          });
-
     const { error } =
-      await authRequest;
+      await supabase.auth.signInWithPassword(
+        {
+          email,
+          password,
+        }
+      );
 
     setIsSubmitting(false);
 
     if (error) {
       setMessage(error.message);
       return;
-    }
-
-    if (mode === "sign-up") {
-      setMessage(
-        "Account created. Check your email if Supabase asks you to confirm it, then sign in."
-      );
-      setMode("sign-in");
-      setPassword("");
     }
   };
 
@@ -129,11 +101,7 @@ function AuthScreen() {
         />
 
         <input
-          autoComplete={
-            mode === "sign-in"
-              ? "current-password"
-              : "new-password"
-          }
+          autoComplete="current-password"
           minLength={6}
           placeholder="Password"
           type="password"
@@ -162,26 +130,19 @@ function AuthScreen() {
         >
           {isSubmitting
             ? "Please wait..."
-            : mode === "sign-in"
-              ? "Sign In"
-              : "Create Account"}
+            : "Sign In"}
         </button>
 
-        <button
-          type="button"
-          onClick={() => {
-            setMessage("");
-            setMode(
-              mode === "sign-in"
-                ? "sign-up"
-                : "sign-in"
-            );
+        <p
+          style={{
+            color: "#64748b",
+            fontSize: "14px",
+            margin: 0,
           }}
         >
-          {mode === "sign-in"
-            ? "Create an account"
-            : "Back to sign in"}
-        </button>
+          Access is invite-only. Ask the
+          family admin to invite you.
+        </p>
       </form>
     </div>
   );

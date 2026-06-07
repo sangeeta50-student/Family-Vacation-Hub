@@ -74,6 +74,11 @@ function App() {
   const [isMfaVerified, setIsMfaVerified] =
   useState(false);
 
+  const hasConfiguredPassword = Boolean(
+    session?.user.user_metadata
+      ?.passwordConfigured
+  );
+
   const {
     trips,
     setTrips,
@@ -81,7 +86,10 @@ function App() {
     errorMessage: cloudErrorMessage,
     isLoading: isTripsLoading,
   } = useCloudTrips(
-    isMfaVerified ? session : null
+    isMfaVerified &&
+      hasConfiguredPassword
+      ? session
+      : null
   );
 
   const handleMfaVerified =
@@ -99,7 +107,7 @@ function App() {
       await supabase.auth.getSession();
 
     setSession(data.session);
-    setIsMfaVerified(false);
+    setIsMfaVerified(true);
   }, []);
 
   const [showTripModal,
@@ -1125,14 +1133,15 @@ const getDeleteMessage = () => {
     return <AuthScreen />;
   }
 
-  if (
-    !session.user.user_metadata
-      ?.passwordConfigured
-  ) {
+  if (!hasConfiguredPassword) {
     return (
-      <PasswordSetupGate
-        onPasswordSet={handlePasswordSet}
-      />
+      <MfaGate
+        onVerified={handleMfaVerified}
+      >
+        <PasswordSetupGate
+          onPasswordSet={handlePasswordSet}
+        />
+      </MfaGate>
     );
   }
 

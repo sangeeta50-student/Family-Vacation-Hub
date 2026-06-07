@@ -14,6 +14,9 @@ function AuthScreen() {
   const [isSubmitting, setIsSubmitting] =
     useState(false);
 
+  const authRedirectUrl =
+    `${window.location.origin}${import.meta.env.BASE_URL}`;
+
   const submitAuth = async (
     event: FormEvent
   ) => {
@@ -54,6 +57,44 @@ function AuthScreen() {
     if (updateError) {
       setMessage(updateError.message);
     }
+  };
+
+  const sendPasswordReset = async () => {
+    if (!supabase) {
+      setMessage(
+        "Supabase is not configured yet."
+      );
+      return;
+    }
+
+    if (!email.trim()) {
+      setMessage(
+        "Enter your email first, then request a password setup link."
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
+    setMessage("");
+
+    const { error } =
+      await supabase.auth.resetPasswordForEmail(
+        email,
+        {
+          redirectTo: authRedirectUrl,
+        }
+      );
+
+    setIsSubmitting(false);
+
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    setMessage(
+      "Check your email for a secure link to set your password."
+    );
   };
 
   return (
@@ -142,6 +183,14 @@ function AuthScreen() {
           {isSubmitting
             ? "Please wait..."
             : "Sign In"}
+        </button>
+
+        <button
+          disabled={isSubmitting}
+          onClick={sendPasswordReset}
+          type="button"
+        >
+          Set or reset password
         </button>
 
         <p

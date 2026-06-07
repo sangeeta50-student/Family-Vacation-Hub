@@ -17,4 +17,6 @@ export type Flight = {
 
   cabin?: string;
 
+  notes?: string;
+
 };

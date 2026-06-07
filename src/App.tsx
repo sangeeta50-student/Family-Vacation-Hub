@@ -196,6 +196,10 @@ function App() {
   setFlightCabin] =
   useState("");
 
+  const [flightNotes,
+  setFlightNotes] =
+  useState("");
+
   const [showFlightImportModal,
   setShowFlightImportModal] =
   useState(false);
@@ -463,6 +467,8 @@ const saveFlight = () => {
     flightAircraft,
   cabin:
     flightCabin,
+  notes:
+    flightNotes,
 };
 
 if (
@@ -492,6 +498,7 @@ if (
   setFlightDuration("");
   setFlightAircraft("");
   setFlightCabin("");
+  setFlightNotes("");
 
   setEditingFlightIndex(
     null
@@ -896,6 +903,10 @@ const editFlight = (
     flight.cabin || ""
   );
 
+  setFlightNotes(
+    flight.notes || ""
+  );
+
   setEditingFlightIndex(
     flightIndex
   );
@@ -1285,6 +1296,7 @@ const getDeleteMessage = () => {
   setFlightDuration("");
   setFlightAircraft("");
   setFlightCabin("");
+  setFlightNotes("");
 
   setShowFlightForm(true);
 }}
@@ -1689,6 +1701,20 @@ const getDeleteMessage = () => {
         e.target.value
       )
     }
+  />
+
+  <textarea
+    placeholder="Notes"
+    value={flightNotes}
+    onChange={(e) =>
+      setFlightNotes(
+        e.target.value
+      )
+    }
+    rows={4}
+    style={{
+      resize: "vertical",
+    }}
   />
 </div>
 <br />

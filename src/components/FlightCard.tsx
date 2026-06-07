@@ -58,6 +58,22 @@ function FlightCard({
     💺 {flight.cabin}
   </p>
 )}
+
+{flight.notes && (
+  <div
+    style={{
+      background: "#f8fafc",
+      borderLeft:
+        "3px solid #2563eb",
+      marginTop: "10px",
+      padding: "8px 10px",
+      whiteSpace: "pre-wrap",
+    }}
+  >
+    <strong>Notes</strong>
+    <div>{flight.notes}</div>
+  </div>
+)}
 <button
   onClick={(e) => {
     e.stopPropagation();

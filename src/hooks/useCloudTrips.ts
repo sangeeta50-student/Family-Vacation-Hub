@@ -141,20 +141,53 @@ const mergeLocalAndCloudTrips = (
   ];
 };
 
+const normalizeForCompare = (
+  value: unknown
+): unknown => {
+  if (Array.isArray(value)) {
+    return value.map(normalizeForCompare);
+  }
+
+  if (
+    value &&
+    typeof value === "object"
+  ) {
+    return Object.fromEntries(
+      Object.entries(value)
+        .sort(([first], [second]) =>
+          first.localeCompare(second)
+        )
+        .map(([key, entry]) => [
+          key,
+          normalizeForCompare(entry),
+        ])
+    );
+  }
+
+  return value;
+};
+
+const stableStringify = (
+  value: unknown
+) =>
+  JSON.stringify(
+    normalizeForCompare(value)
+  );
+
 const sameDetails = (
   first: Trip,
   second: Trip
 ) =>
-  JSON.stringify(first.flights || []) ===
-    JSON.stringify(second.flights || []) &&
-  JSON.stringify(first.hotels || []) ===
-    JSON.stringify(second.hotels || []) &&
-  JSON.stringify(first.cars || []) ===
-    JSON.stringify(second.cars || []) &&
-  JSON.stringify(
+  stableStringify(first.flights || []) ===
+    stableStringify(second.flights || []) &&
+  stableStringify(first.hotels || []) ===
+    stableStringify(second.hotels || []) &&
+  stableStringify(first.cars || []) ===
+    stableStringify(second.cars || []) &&
+  stableStringify(
     first.activities || []
   ) ===
-    JSON.stringify(
+    stableStringify(
       second.activities || []
     );
 

@@ -269,6 +269,9 @@ export const useCloudTrips = (
             latestTripsJson !==
             serializedTrips
           ) {
+            setTrips([
+              ...latestTrips.current,
+            ]);
             return;
           }
 

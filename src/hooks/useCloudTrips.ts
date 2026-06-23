@@ -141,6 +141,64 @@ const mergeLocalAndCloudTrips = (
   ];
 };
 
+const sameDetails = (
+  first: Trip,
+  second: Trip
+) =>
+  JSON.stringify(first.flights || []) ===
+    JSON.stringify(second.flights || []) &&
+  JSON.stringify(first.hotels || []) ===
+    JSON.stringify(second.hotels || []) &&
+  JSON.stringify(first.cars || []) ===
+    JSON.stringify(second.cars || []) &&
+  JSON.stringify(
+    first.activities || []
+  ) ===
+    JSON.stringify(
+      second.activities || []
+    );
+
+const findSavedTrip = (
+  expected: Trip,
+  savedTrips: Trip[]
+) =>
+  (expected.id &&
+    savedTrips.find(
+      (trip) => trip.id === expected.id
+    )) ||
+  savedTrips.find(
+    (trip) =>
+      tripMatchKey(trip) ===
+      tripMatchKey(expected)
+  );
+
+const assertTripsWereSaved = (
+  expectedTrips: Trip[],
+  savedTrips: Trip[]
+) => {
+  const missingTrip =
+    expectedTrips.find((expected) => {
+      const savedTrip = findSavedTrip(
+        expected,
+        savedTrips
+      );
+
+      return (
+        !savedTrip ||
+        !sameDetails(
+          expected,
+          savedTrip
+        )
+      );
+    });
+
+  if (missingTrip) {
+    throw new Error(
+      `Supabase did not confirm saved details for "${missingTrip.name}".`
+    );
+  }
+};
+
 const getErrorMessage = (
   error: unknown,
   fallback: string
@@ -229,6 +287,13 @@ export const useCloudTrips = (
             ? await saveTrips(mergedTrips)
             : mergedTrips;
 
+        if (shouldSaveMergedTrips) {
+          assertTripsWereSaved(
+            mergedTrips,
+            nextTrips
+          );
+        }
+
         setTrips(nextTrips);
         localStorage.setItem(
           "trips",
@@ -261,6 +326,52 @@ export const useCloudTrips = (
         );
       } finally {
         setIsLoading(false);
+      }
+    },
+    [session]
+  );
+
+  const syncTripsNow = useCallback(
+    async () => {
+      if (!session || !supabase) {
+        return;
+      }
+
+      const tripsToSave =
+        latestTrips.current;
+
+      setStatus("saving");
+      setErrorMessage("");
+
+      try {
+        const savedTrips =
+          await saveTrips(tripsToSave);
+
+        assertTripsWereSaved(
+          tripsToSave,
+          savedTrips
+        );
+
+        const savedTripsJson =
+          serializeTrips(savedTrips);
+
+        lastSavedTrips.current =
+          savedTripsJson;
+        latestTrips.current = savedTrips;
+        setTrips(savedTrips);
+        localStorage.setItem(
+          "trips",
+          savedTripsJson
+        );
+        setStatus("synced");
+      } catch (error) {
+        setStatus("error");
+        setErrorMessage(
+          getErrorMessage(
+            error,
+            "Could not save trips."
+          )
+        );
       }
     },
     [session]
@@ -372,6 +483,11 @@ export const useCloudTrips = (
         try {
           const savedTrips =
             await saveTrips(trips);
+          assertTripsWereSaved(
+            trips,
+            savedTrips
+          );
+
           const savedTripsJson =
             serializeTrips(savedTrips);
           const latestTripsJson =
@@ -421,5 +537,6 @@ export const useCloudTrips = (
     errorMessage,
     isLoading,
     reloadTrips: loadTrips,
+    syncTripsNow,
   };
 };

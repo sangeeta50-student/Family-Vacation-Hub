@@ -116,6 +116,7 @@ function App() {
     status: cloudStatus,
     errorMessage: cloudErrorMessage,
     isLoading: isTripsLoading,
+    syncTripsNow,
   } = useCloudTrips(
     isMfaVerified &&
       hasConfiguredPassword
@@ -1475,6 +1476,19 @@ const renderToggleButton = (
           >
             {session.user.email}
           </span>
+
+          <button
+            disabled={
+              cloudStatus === "saving" ||
+              isTripsLoading
+            }
+            onClick={() => {
+              void syncTripsNow();
+            }}
+            type="button"
+          >
+            Sync Now
+          </button>
 
           <button
             onClick={signOut}

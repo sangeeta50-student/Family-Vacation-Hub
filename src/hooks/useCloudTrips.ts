@@ -73,6 +73,8 @@ export const useCloudTrips = (
     useRef(false);
   const lastSavedTrips =
     useRef(serializeTrips(trips));
+  const latestTrips =
+    useRef(trips);
   const saveTimer =
     useRef<number | null>(null);
   const reloadTimer =
@@ -81,6 +83,19 @@ export const useCloudTrips = (
   const loadTrips = useCallback(
     async (migrateLocalTrips = false) => {
       if (!session || !supabase) {
+        return;
+      }
+
+      const hasUnsavedLocalChanges =
+        hasLoadedTrips.current &&
+        serializeTrips(
+          latestTrips.current
+        ) !== lastSavedTrips.current;
+
+      if (
+        !migrateLocalTrips &&
+        hasUnsavedLocalChanges
+      ) {
         return;
       }
 
@@ -138,6 +153,8 @@ export const useCloudTrips = (
   );
 
   useEffect(() => {
+    latestTrips.current = trips;
+
     localStorage.setItem(
       "trips",
       serializeTrips(trips)
@@ -236,11 +253,24 @@ export const useCloudTrips = (
 
     saveTimer.current =
       window.setTimeout(async () => {
+        saveTimer.current = null;
+
         try {
           const savedTrips =
             await saveTrips(trips);
           const savedTripsJson =
             serializeTrips(savedTrips);
+          const latestTripsJson =
+            serializeTrips(
+              latestTrips.current
+            );
+
+          if (
+            latestTripsJson !==
+            serializedTrips
+          ) {
+            return;
+          }
 
           lastSavedTrips.current =
             savedTripsJson;

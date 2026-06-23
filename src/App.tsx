@@ -235,6 +235,110 @@ function App() {
       .filter(Boolean)
       .join(" • ");
 
+  const dateSortValue = (
+    date?: string,
+    time?: string
+  ) => {
+    if (!date?.trim()) {
+      return Number.POSITIVE_INFINITY;
+    }
+
+    const dateText = date
+      .trim()
+      .replace(
+        /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun),?\s+/i,
+        ""
+      );
+    const parsed = Date.parse(
+      `${dateText} ${time || ""}`.trim()
+    );
+
+    return Number.isNaN(parsed)
+      ? Number.POSITIVE_INFINITY
+      : parsed;
+  };
+
+  const sortByDate = <T,>(
+    items: T[],
+    getValue: (item: T) => number
+  ) =>
+    [...items].sort(
+      (first, second) =>
+        getValue(first) - getValue(second)
+    );
+
+  const sortTripSection = (
+    tripIndex: number,
+    section: SectionKind
+  ) => {
+    setTrips((currentTrips) => {
+      const updatedTrips = [...currentTrips];
+      const trip = updatedTrips[tripIndex];
+
+      if (!trip) {
+        return currentTrips;
+      }
+
+      if (section === "flights") {
+        updatedTrips[tripIndex] = {
+          ...trip,
+          flights: sortByDate(
+            trip.flights || [],
+            (flight) =>
+              dateSortValue(
+                flight.date,
+                flight.departureTime
+              )
+          ),
+        };
+      }
+
+      if (section === "hotels") {
+        updatedTrips[tripIndex] = {
+          ...trip,
+          hotels: sortByDate(
+            trip.hotels || [],
+            (hotel) =>
+              dateSortValue(
+                hotel.checkInDate,
+                hotel.checkInTime
+              )
+          ),
+        };
+      }
+
+      if (section === "cars") {
+        updatedTrips[tripIndex] = {
+          ...trip,
+          cars: sortByDate(
+            trip.cars || [],
+            (car) =>
+              dateSortValue(
+                car.pickupDate,
+                car.pickupTime
+              )
+          ),
+        };
+      }
+
+      if (section === "activities") {
+        updatedTrips[tripIndex] = {
+          ...trip,
+          activities: sortByDate(
+            trip.activities || [],
+            (activity) =>
+              dateSortValue(
+                activity.date,
+                activity.time
+              )
+          ),
+        };
+      }
+
+      return updatedTrips;
+    });
+  };
+
   const [showTripModal,
   setShowTripModal] =
   useState(false);
@@ -2355,6 +2459,23 @@ const renderToggleButton = (
 
         {flightsOpen && (
           <div className="section-body">
+            <button
+              className="sort-section-button"
+              disabled={
+                !trip.flights?.length
+              }
+              onClick={(event) => {
+                event.stopPropagation();
+                sortTripSection(
+                  index,
+                  "flights"
+                );
+              }}
+              type="button"
+            >
+              Sort Flights by Date
+            </button>
+
             {trip.flights?.length ? (
               trip.flights.map(
                 (
@@ -2427,6 +2548,23 @@ const renderToggleButton = (
 
         {hotelsOpen && (
           <div className="section-body">
+            <button
+              className="sort-section-button"
+              disabled={
+                !trip.hotels?.length
+              }
+              onClick={(event) => {
+                event.stopPropagation();
+                sortTripSection(
+                  index,
+                  "hotels"
+                );
+              }}
+              type="button"
+            >
+              Sort Hotels by Date
+            </button>
+
             {trip.hotels?.length ? (
               trip.hotels.map(
                 (
@@ -2497,6 +2635,23 @@ const renderToggleButton = (
 
         {carsOpen && (
           <div className="section-body">
+            <button
+              className="sort-section-button"
+              disabled={
+                !trip.cars?.length
+              }
+              onClick={(event) => {
+                event.stopPropagation();
+                sortTripSection(
+                  index,
+                  "cars"
+                );
+              }}
+              type="button"
+            >
+              Sort Cars by Date
+            </button>
+
             {trip.cars?.length ? (
               trip.cars.map(
                 (car, carIndex) => {
@@ -2566,6 +2721,23 @@ const renderToggleButton = (
 
         {activitiesOpen && (
           <div className="section-body">
+            <button
+              className="sort-section-button"
+              disabled={
+                !trip.activities?.length
+              }
+              onClick={(event) => {
+                event.stopPropagation();
+                sortTripSection(
+                  index,
+                  "activities"
+                );
+              }}
+              type="button"
+            >
+              Sort Activities by Date
+            </button>
+
             {trip.activities?.length ? (
               trip.activities.map(
                 (

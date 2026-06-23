@@ -38,6 +38,109 @@ const readLocalTrips = () => {
 const serializeTrips = (trips: Trip[]) =>
   JSON.stringify(trips);
 
+const tripMatchKey = (trip: Trip) =>
+  [
+    trip.name.trim().toLowerCase(),
+    (trip.destinationCity || "")
+      .trim()
+      .toLowerCase(),
+  ].join("|");
+
+const chooseLonger = <T,>(
+  cloudItems: T[] = [],
+  localItems: T[] = []
+) =>
+  localItems.length > cloudItems.length
+    ? localItems
+    : cloudItems;
+
+const mergeLocalTripDetails = (
+  cloudTrip: Trip,
+  localTrip: Trip
+): Trip => ({
+  ...cloudTrip,
+  destinationCity:
+    cloudTrip.destinationCity ||
+    localTrip.destinationCity,
+  flights: chooseLonger(
+    cloudTrip.flights,
+    localTrip.flights
+  ),
+  hotels: chooseLonger(
+    cloudTrip.hotels,
+    localTrip.hotels
+  ),
+  cars: chooseLonger(
+    cloudTrip.cars,
+    localTrip.cars
+  ),
+  activities: chooseLonger(
+    cloudTrip.activities,
+    localTrip.activities
+  ),
+});
+
+const mergeLocalAndCloudTrips = (
+  cloudTrips: Trip[],
+  localTrips: Trip[]
+) => {
+  const localById = new Map(
+    localTrips
+      .filter((trip) => trip.id)
+      .map((trip) => [
+        trip.id,
+        trip,
+      ])
+  );
+  const localByName = new Map(
+    localTrips.map((trip) => [
+      tripMatchKey(trip),
+      trip,
+    ])
+  );
+  const mergedTrips = cloudTrips.map(
+    (cloudTrip) => {
+      const localTrip =
+        (cloudTrip.id &&
+          localById.get(cloudTrip.id)) ||
+        localByName.get(
+          tripMatchKey(cloudTrip)
+        );
+
+      return localTrip
+        ? mergeLocalTripDetails(
+            cloudTrip,
+            localTrip
+          )
+        : cloudTrip;
+    }
+  );
+  const cloudIds = new Set(
+    cloudTrips
+      .map((trip) => trip.id)
+      .filter(Boolean)
+  );
+  const cloudNames = new Set(
+    cloudTrips.map(tripMatchKey)
+  );
+  const localOnlyTrips =
+    localTrips.filter(
+      (trip) =>
+        !(
+          trip.id &&
+          cloudIds.has(trip.id)
+        ) &&
+        !cloudNames.has(
+          tripMatchKey(trip)
+        )
+    );
+
+  return [
+    ...mergedTrips,
+    ...localOnlyTrips,
+  ];
+};
+
 const getErrorMessage = (
   error: unknown,
   fallback: string
@@ -108,12 +211,23 @@ export const useCloudTrips = (
           await fetchTrips();
         const localTrips =
           readLocalTrips();
-        const nextTrips =
+        const mergedTrips =
           migrateLocalTrips &&
-          cloudTrips.length === 0 &&
           localTrips.length > 0
-            ? await saveTrips(localTrips)
+            ? mergeLocalAndCloudTrips(
+                cloudTrips,
+                localTrips
+              )
             : cloudTrips;
+        const shouldSaveMergedTrips =
+          migrateLocalTrips &&
+          localTrips.length > 0 &&
+          serializeTrips(mergedTrips) !==
+            serializeTrips(cloudTrips);
+        const nextTrips =
+          shouldSaveMergedTrips
+            ? await saveTrips(mergedTrips)
+            : mergedTrips;
 
         setTrips(nextTrips);
         localStorage.setItem(

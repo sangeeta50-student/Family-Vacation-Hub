@@ -622,8 +622,6 @@ const saveActivity = () => {
   if (!activityName.trim())
     return;
 
-  const updatedTrips = [...trips];
-
   const activityData = {
   name: activityName,
   date: activityDate,
@@ -634,21 +632,29 @@ const saveActivity = () => {
   source: "Manual",
 };
 
-if (
-  editingActivityIndex !== null
-) {
-  updatedTrips[
-    selectedTripIndex
-  ].activities[
-    editingActivityIndex
-  ] = activityData;
-} else {
-  updatedTrips[
-    selectedTripIndex
-  ].activities.push(
-    activityData
-  );
-}
+  const updatedTrips = [...trips];
+  const selectedTrip =
+    updatedTrips[selectedTripIndex];
+  const currentActivities =
+    selectedTrip.activities || [];
+  const nextActivities =
+    editingActivityIndex !== null
+      ? currentActivities.map(
+          (activity, index) =>
+            index ===
+            editingActivityIndex
+              ? activityData
+              : activity
+        )
+      : [
+          ...currentActivities,
+          activityData,
+        ];
+
+  updatedTrips[selectedTripIndex] = {
+    ...selectedTrip,
+    activities: nextActivities,
+  };
 
   setTrips(updatedTrips);
 
@@ -679,16 +685,16 @@ const importActivityDetails = () => {
     return;
 
   const updatedTrips = [...trips];
+  const selectedTrip =
+    updatedTrips[selectedTripIndex];
 
-  updatedTrips[
-    selectedTripIndex
-  ].activities ||= [];
-
-  updatedTrips[
-    selectedTripIndex
-  ].activities.push(
-    ...parsedActivities
-  );
+  updatedTrips[selectedTripIndex] = {
+    ...selectedTrip,
+    activities: [
+      ...(selectedTrip.activities || []),
+      ...parsedActivities,
+    ],
+  };
 
   setTrips(updatedTrips);
   setActivityImportText("");
@@ -704,8 +710,6 @@ const saveFlight = () => {
 
   if (!flightNumber.trim())
     return;
-
-  const updatedTrips = [...trips];
 
   const flightData = {
   flightNumber,
@@ -726,21 +730,28 @@ const saveFlight = () => {
     flightNotes,
 };
 
-if (
-  editingFlightIndex !== null
-) {
-  updatedTrips[
-    selectedTripIndex
-  ].flights[
-    editingFlightIndex
-  ] = flightData;
-} else {
-  updatedTrips[
-    selectedTripIndex
-  ].flights.push(
-    flightData
-  );
-}
+  const updatedTrips = [...trips];
+  const selectedTrip =
+    updatedTrips[selectedTripIndex];
+  const currentFlights =
+    selectedTrip.flights || [];
+  const nextFlights =
+    editingFlightIndex !== null
+      ? currentFlights.map(
+          (flight, index) =>
+            index === editingFlightIndex
+              ? flightData
+              : flight
+        )
+      : [
+          ...currentFlights,
+          flightData,
+        ];
+
+  updatedTrips[selectedTripIndex] = {
+    ...selectedTrip,
+    flights: nextFlights,
+  };
 
   setTrips(updatedTrips);
 
@@ -777,12 +788,16 @@ const importFlightDetails = () => {
     return;
 
   const updatedTrips = [...trips];
+  const selectedTrip =
+    updatedTrips[selectedTripIndex];
 
-  updatedTrips[
-    selectedTripIndex
-  ].flights.push(
-    ...parsedFlights
-  );
+  updatedTrips[selectedTripIndex] = {
+    ...selectedTrip,
+    flights: [
+      ...(selectedTrip.flights || []),
+      ...parsedFlights,
+    ],
+  };
 
   setTrips(updatedTrips);
 
@@ -813,8 +828,6 @@ const saveHotel = () => {
   if (!hotelName.trim())
     return;
 
-  const updatedTrips = [...trips];
-
   const hotelData = {
     name: hotelName,
     address: hotelAddress,
@@ -826,25 +839,28 @@ const saveHotel = () => {
     notes: hotelNotes,
   };
 
-  updatedTrips[
-    selectedTripIndex
-  ].hotels ||= [];
-
-  if (
+  const updatedTrips = [...trips];
+  const selectedTrip =
+    updatedTrips[selectedTripIndex];
+  const currentHotels =
+    selectedTrip.hotels || [];
+  const nextHotels =
     editingHotelIndex !== null
-  ) {
-    updatedTrips[
-      selectedTripIndex
-    ].hotels[
-      editingHotelIndex
-    ] = hotelData;
-  } else {
-    updatedTrips[
-      selectedTripIndex
-    ].hotels.push(
-      hotelData
-    );
-  }
+      ? currentHotels.map(
+          (hotel, index) =>
+            index === editingHotelIndex
+              ? hotelData
+              : hotel
+        )
+      : [
+          ...currentHotels,
+          hotelData,
+        ];
+
+  updatedTrips[selectedTripIndex] = {
+    ...selectedTrip,
+    hotels: nextHotels,
+  };
 
   setTrips(updatedTrips);
   clearHotelForm();
@@ -866,16 +882,16 @@ const importHotelDetails = () => {
     return;
 
   const updatedTrips = [...trips];
+  const selectedTrip =
+    updatedTrips[selectedTripIndex];
 
-  updatedTrips[
-    selectedTripIndex
-  ].hotels ||= [];
-
-  updatedTrips[
-    selectedTripIndex
-  ].hotels.push(
-    ...parsedHotels
-  );
+  updatedTrips[selectedTripIndex] = {
+    ...selectedTrip,
+    hotels: [
+      ...(selectedTrip.hotels || []),
+      ...parsedHotels,
+    ],
+  };
 
   setTrips(updatedTrips);
   setHotelImportText("");
@@ -911,8 +927,6 @@ const saveCar = () => {
   )
     return;
 
-  const updatedTrips = [...trips];
-
   const carData = {
     company: carCompany,
     vehicleType: carVehicleType,
@@ -928,23 +942,27 @@ const saveCar = () => {
     notes: carNotes,
   };
 
-  updatedTrips[
-    selectedTripIndex
-  ].cars ||= [];
-
-  if (
+  const updatedTrips = [...trips];
+  const selectedTrip =
+    updatedTrips[selectedTripIndex];
+  const currentCars =
+    selectedTrip.cars || [];
+  const nextCars =
     editingCarIndex !== null
-  ) {
-    updatedTrips[
-      selectedTripIndex
-    ].cars[
-      editingCarIndex
-    ] = carData;
-  } else {
-    updatedTrips[
-      selectedTripIndex
-    ].cars.push(carData);
-  }
+      ? currentCars.map((car, index) =>
+          index === editingCarIndex
+            ? carData
+            : car
+        )
+      : [
+          ...currentCars,
+          carData,
+        ];
+
+  updatedTrips[selectedTripIndex] = {
+    ...selectedTrip,
+    cars: nextCars,
+  };
 
   setTrips(updatedTrips);
   clearCarForm();
@@ -964,14 +982,16 @@ const importCarDetails = () => {
     return;
 
   const updatedTrips = [...trips];
+  const selectedTrip =
+    updatedTrips[selectedTripIndex];
 
-  updatedTrips[
-    selectedTripIndex
-  ].cars ||= [];
-
-  updatedTrips[
-    selectedTripIndex
-  ].cars.push(...parsedCars);
+  updatedTrips[selectedTripIndex] = {
+    ...selectedTrip,
+    cars: [
+      ...(selectedTrip.cars || []),
+      ...parsedCars,
+    ],
+  };
 
   setTrips(updatedTrips);
   setCarImportText("");

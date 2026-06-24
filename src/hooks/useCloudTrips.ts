@@ -370,13 +370,24 @@ export const useCloudTrips = (
         return;
       }
 
-      const tripsToSave =
-        latestTrips.current;
-
       setStatus("saving");
       setErrorMessage("");
 
       try {
+        const cloudTrips =
+          await fetchTrips();
+        const localTrips =
+          readLocalTrips();
+        const currentWithLocal =
+          mergeLocalAndCloudTrips(
+            latestTrips.current,
+            localTrips
+          );
+        const tripsToSave =
+          mergeLocalAndCloudTrips(
+            cloudTrips,
+            currentWithLocal
+          );
         const savedTrips =
           await saveTrips(tripsToSave);
 

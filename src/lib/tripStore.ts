@@ -40,6 +40,7 @@ export const rowToTrip = (
 });
 
 const tripToPayload = (trip: Trip) => ({
+  ...(trip.id ? { id: trip.id } : {}),
   family_id: familyId,
   name: trip.name,
   destination_city:
@@ -102,7 +103,10 @@ export const saveTrips = async (
   const savedTrips: Trip[] = [];
 
   for (const trip of trips) {
-    if (trip.id) {
+    if (
+      trip.id &&
+      existingIds.has(trip.id)
+    ) {
       const { data, error: updateError } =
         await client
           .from(tableName)

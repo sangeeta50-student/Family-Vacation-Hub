@@ -1251,11 +1251,9 @@ setShowActivityForm(true);
 const confirmDelete = () => {
   if (!deleteTarget) return;
 
-  const updatedTrips = [...trips];
-
   if (deleteTarget.kind === "trip") {
     setTrips(
-      updatedTrips.filter(
+      trips.filter(
         (_, index) =>
           index !==
           deleteTarget.tripIndex
@@ -1267,45 +1265,71 @@ const confirmDelete = () => {
     return;
   }
 
-  const targetTrip =
-    updatedTrips[
-      deleteTarget.tripIndex
-    ];
+  setTrips(
+    trips.map((trip, tripIndex) => {
+      if (
+        tripIndex !==
+        deleteTarget.tripIndex
+      ) {
+        return trip;
+      }
 
-  if (!targetTrip) {
-    setDeleteTarget(null);
-    return;
-  }
+      if (
+        deleteTarget.kind === "flight"
+      ) {
+        return {
+          ...trip,
+          flights: trip.flights.filter(
+            (_, itemIndex) =>
+              itemIndex !==
+              deleteTarget.itemIndex
+          ),
+        };
+      }
 
-  if (deleteTarget.kind === "flight") {
-    targetTrip.flights.splice(
-      deleteTarget.itemIndex,
-      1
-    );
-  }
+      if (
+        deleteTarget.kind === "hotel"
+      ) {
+        return {
+          ...trip,
+          hotels: trip.hotels.filter(
+            (_, itemIndex) =>
+              itemIndex !==
+              deleteTarget.itemIndex
+          ),
+        };
+      }
 
-  if (deleteTarget.kind === "hotel") {
-    targetTrip.hotels.splice(
-      deleteTarget.itemIndex,
-      1
-    );
-  }
+      if (
+        deleteTarget.kind === "car"
+      ) {
+        return {
+          ...trip,
+          cars: trip.cars.filter(
+            (_, itemIndex) =>
+              itemIndex !==
+              deleteTarget.itemIndex
+          ),
+        };
+      }
 
-  if (deleteTarget.kind === "car") {
-    targetTrip.cars.splice(
-      deleteTarget.itemIndex,
-      1
-    );
-  }
+      if (
+        deleteTarget.kind === "activity"
+      ) {
+        return {
+          ...trip,
+          activities:
+            trip.activities.filter(
+              (_, itemIndex) =>
+                itemIndex !==
+                deleteTarget.itemIndex
+            ),
+        };
+      }
 
-  if (deleteTarget.kind === "activity") {
-    targetTrip.activities.splice(
-      deleteTarget.itemIndex,
-      1
-    );
-  }
-
-  setTrips(updatedTrips);
+      return trip;
+    })
+  );
   setDeleteTarget(null);
 };
 
@@ -2892,6 +2916,8 @@ const renderToggleButton = (
               return;
 
             const trip: Trip = {
+              id: crypto.randomUUID(),
+
               name: newTripName,
 
               destinationCity:

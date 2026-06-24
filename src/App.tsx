@@ -2,7 +2,9 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
 } from "react";
+import type { DragEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
 import TripCard from "./components/TripCard";
 
@@ -363,11 +365,131 @@ function App() {
   const [selectedTripIndex, setSelectedTripIndex] =
   useState<number | null>(null);
 
+  const [draggedTripIndex, setDraggedTripIndex] =
+  useState<number | null>(null);
+
+  const [dragOverTripIndex, setDragOverTripIndex] =
+  useState<number | null>(null);
+
+  const didDragTrip = useRef(false);
+
   const [deleteTarget,
   setDeleteTarget] =
   useState<DeleteTarget | null>(
     null
   );
+
+  const withTripSortOrder = (
+    nextTrips: Trip[]
+  ) =>
+    nextTrips.map((trip, index) => ({
+      ...trip,
+      sortOrder: index,
+    }));
+
+  const moveTrip = (
+    fromIndex: number,
+    toIndex: number
+  ) => {
+    if (
+      fromIndex === toIndex ||
+      fromIndex < 0 ||
+      toIndex < 0 ||
+      fromIndex >= trips.length ||
+      toIndex >= trips.length
+    ) {
+      return;
+    }
+
+    const selectedTrip =
+      selectedTripIndex !== null
+        ? trips[selectedTripIndex]
+        : null;
+    const reorderedTrips = [...trips];
+    const [movedTrip] =
+      reorderedTrips.splice(
+        fromIndex,
+        1
+      );
+
+    reorderedTrips.splice(
+      toIndex,
+      0,
+      movedTrip
+    );
+
+    const orderedTrips =
+      withTripSortOrder(
+        reorderedTrips
+      );
+
+    setTrips(orderedTrips);
+
+    if (!selectedTrip) {
+      return;
+    }
+
+    const nextSelectedIndex =
+      orderedTrips.findIndex((trip) =>
+        selectedTrip.id
+          ? trip.id === selectedTrip.id
+          : trip === selectedTrip
+      );
+
+    setSelectedTripIndex(
+      nextSelectedIndex >= 0
+        ? nextSelectedIndex
+        : null
+    );
+  };
+
+  const handleTripDragStart = (
+    tripIndex: number,
+    event: DragEvent<HTMLButtonElement>
+  ) => {
+    event.stopPropagation();
+    didDragTrip.current = false;
+    setDraggedTripIndex(tripIndex);
+    setDragOverTripIndex(tripIndex);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData(
+      "text/plain",
+      String(tripIndex)
+    );
+  };
+
+  const handleTripDrop = (
+    tripIndex: number,
+    event: DragEvent<HTMLDivElement>
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const sourceIndexText =
+      event.dataTransfer.getData(
+        "text/plain"
+      );
+    const sourceIndex =
+      Number(sourceIndexText);
+    const fromIndex = Number.isInteger(
+      sourceIndex
+    )
+      ? sourceIndex
+      : draggedTripIndex;
+
+    if (fromIndex !== null) {
+      didDragTrip.current = true;
+      moveTrip(fromIndex, tripIndex);
+    }
+
+    setDraggedTripIndex(null);
+    setDragOverTripIndex(null);
+  };
+
+  const handleTripDragEnd = () => {
+    setDraggedTripIndex(null);
+    setDragOverTripIndex(null);
+  };
 
   
   
@@ -1561,8 +1683,38 @@ const renderToggleButton = (
 
 {trips.map((trip, index) => (
   <div
+    className={[
+      "trip-list-item",
+      draggedTripIndex === index
+        ? "is-dragging"
+        : "",
+      dragOverTripIndex === index &&
+      draggedTripIndex !== index
+        ? "is-drag-over"
+        : "",
+    ]
+      .filter(Boolean)
+      .join(" ")}
     key={trip.id || index}
+    onDragEnter={(event) => {
+      event.preventDefault();
+      setDragOverTripIndex(index);
+    }}
+    onDragOver={(event) => {
+      event.preventDefault();
+      event.dataTransfer.dropEffect =
+        "move";
+      setDragOverTripIndex(index);
+    }}
+    onDrop={(event) =>
+      handleTripDrop(index, event)
+    }
     onClick={() => {
+      if (didDragTrip.current) {
+        didDragTrip.current = false;
+        return;
+      }
+
       if (
         selectedTripIndex === index
       ) {
@@ -1575,19 +1727,75 @@ const renderToggleButton = (
       cursor: "pointer",
     }}
   >
-    <TripCard
-      title={
-        selectedTripIndex === index
-          ? `▼ ${trip.name}`
-          : `▶ ${trip.name}`
-      }
-      flights={trip.flights.length}
-      hotels={trip.hotels?.length || 0}
-      cars={trip.cars?.length || 0}
-      activities={
-        trip.activities?.length || 0
-      }
-    />
+    <div className="trip-card-row">
+      <div
+        className="trip-order-controls"
+        onClick={(event) =>
+          event.stopPropagation()
+        }
+      >
+        <button
+          aria-label={`Drag ${trip.name} to reorder`}
+          className="trip-drag-handle"
+          draggable
+          onDragEnd={handleTripDragEnd}
+          onDragStart={(event) =>
+            handleTripDragStart(
+              index,
+              event
+            )
+          }
+          title="Drag to reorder"
+          type="button"
+        >
+          ↕
+        </button>
+
+        <button
+          aria-label={`Move ${trip.name} up`}
+          className="trip-order-button"
+          disabled={index === 0}
+          onClick={() =>
+            moveTrip(index, index - 1)
+          }
+          title="Move up"
+          type="button"
+        >
+          ↑
+        </button>
+
+        <button
+          aria-label={`Move ${trip.name} down`}
+          className="trip-order-button"
+          disabled={
+            index === trips.length - 1
+          }
+          onClick={() =>
+            moveTrip(index, index + 1)
+          }
+          title="Move down"
+          type="button"
+        >
+          ↓
+        </button>
+      </div>
+
+      <TripCard
+        title={
+          selectedTripIndex === index
+            ? `▼ ${trip.name}`
+            : `▶ ${trip.name}`
+        }
+        flights={trip.flights.length}
+        hotels={
+          trip.hotels?.length || 0
+        }
+        cars={trip.cars?.length || 0}
+        activities={
+          trip.activities?.length || 0
+        }
+      />
+    </div>
 
     {selectedTripIndex === index && (
       <div
@@ -2917,6 +3125,8 @@ const renderToggleButton = (
 
             const trip: Trip = {
               id: crypto.randomUUID(),
+
+              sortOrder: trips.length,
 
               name: newTripName,
 

@@ -4,6 +4,7 @@ import type { Trip } from "../types/Trip";
 type TripRow = {
   id: string;
   family_id: string;
+  sort_order?: number | null;
   name: string;
   destination_city: string | null;
   flights: Trip["flights"] | null;
@@ -15,6 +16,7 @@ type TripRow = {
 };
 
 const tableName = "family_trips";
+let supportsSortOrder = true;
 
 const requireSupabase = () => {
   if (!supabase) {
@@ -30,6 +32,10 @@ export const rowToTrip = (
   row: TripRow
 ): Trip => ({
   id: row.id,
+  sortOrder:
+    typeof row.sort_order === "number"
+      ? row.sort_order
+      : undefined,
   name: row.name,
   destinationCity:
     row.destination_city || "",
@@ -39,8 +45,17 @@ export const rowToTrip = (
   activities: row.activities || [],
 });
 
-const tripToPayload = (trip: Trip) => ({
+const tripToPayload = (
+  trip: Trip,
+  includeSortOrder = true
+) => ({
   ...(trip.id ? { id: trip.id } : {}),
+  ...(includeSortOrder
+    ? {
+        sort_order:
+          trip.sortOrder ?? 0,
+      }
+    : {}),
   family_id: familyId,
   name: trip.name,
   destination_city:
@@ -50,6 +65,46 @@ const tripToPayload = (trip: Trip) => ({
   cars: trip.cars || [],
   activities: trip.activities || [],
 });
+
+const isMissingSortOrderError = (
+  error: unknown
+) => {
+  if (
+    !error ||
+    typeof error !== "object"
+  ) {
+    return false;
+  }
+
+  const details = [
+    "code" in error
+      ? String(error.code)
+      : "",
+    "message" in error
+      ? String(error.message)
+      : "",
+    "details" in error
+      ? String(error.details)
+      : "",
+  ].join(" ");
+
+  return (
+    details.includes("sort_order") &&
+    (details.includes("PGRST204") ||
+      details
+        .toLowerCase()
+        .includes("column"))
+  );
+};
+
+const sortTrips = (trips: Trip[]) =>
+  [...trips].sort(
+    (first, second) =>
+      (first.sortOrder ??
+        Number.MAX_SAFE_INTEGER) -
+      (second.sortOrder ??
+        Number.MAX_SAFE_INTEGER)
+  );
 
 export const fetchTrips = async () => {
   const client = requireSupabase();
@@ -66,8 +121,10 @@ export const fetchTrips = async () => {
     throw error;
   }
 
-  return (data || []).map((row) =>
-    rowToTrip(row as TripRow)
+  return sortTrips(
+    (data || []).map((row) =>
+      rowToTrip(row as TripRow)
+    )
   );
 };
 
@@ -75,6 +132,12 @@ export const saveTrips = async (
   trips: Trip[]
 ) => {
   const client = requireSupabase();
+  const tripsWithOrder = trips.map(
+    (trip, index) => ({
+      ...trip,
+      sortOrder: index,
+    })
+  );
 
   const { data: existingRows, error } =
     await client
@@ -92,7 +155,7 @@ export const saveTrips = async (
     )
   );
   const nextIds = new Set(
-    trips
+    tripsWithOrder
       .map((trip) => trip.id)
       .filter(
         (id): id is string =>
@@ -102,19 +165,55 @@ export const saveTrips = async (
 
   const savedTrips: Trip[] = [];
 
-  for (const trip of trips) {
+  for (const trip of tripsWithOrder) {
     if (
       trip.id &&
       existingIds.has(trip.id)
     ) {
-      const { data, error: updateError } =
+      let { data, error: updateError } =
         await client
           .from(tableName)
-          .update(tripToPayload(trip))
+          .update(
+            tripToPayload(
+              trip,
+              supportsSortOrder
+            )
+          )
           .eq("id", trip.id)
           .eq("family_id", familyId)
           .select("*")
           .single();
+
+      if (
+        updateError &&
+        supportsSortOrder &&
+        isMissingSortOrderError(
+          updateError
+        )
+      ) {
+        supportsSortOrder = false;
+
+        const retry =
+          await client
+            .from(tableName)
+            .update(
+              tripToPayload(
+                trip,
+                false
+              )
+            )
+            .eq("id", trip.id)
+            .eq(
+              "family_id",
+              familyId
+            )
+            .select("*")
+            .single();
+
+        data = retry.data;
+        updateError =
+          retry.error;
+      }
 
       if (updateError) {
         throw updateError;
@@ -124,12 +223,43 @@ export const saveTrips = async (
         rowToTrip(data as TripRow)
       );
     } else {
-      const { data, error: insertError } =
+      let { data, error: insertError } =
         await client
           .from(tableName)
-          .insert(tripToPayload(trip))
+          .insert(
+            tripToPayload(
+              trip,
+              supportsSortOrder
+            )
+          )
           .select("*")
           .single();
+
+      if (
+        insertError &&
+        supportsSortOrder &&
+        isMissingSortOrderError(
+          insertError
+        )
+      ) {
+        supportsSortOrder = false;
+
+        const retry =
+          await client
+            .from(tableName)
+            .insert(
+              tripToPayload(
+                trip,
+                false
+              )
+            )
+            .select("*")
+            .single();
+
+        data = retry.data;
+        insertError =
+          retry.error;
+      }
 
       if (insertError) {
         throw insertError;

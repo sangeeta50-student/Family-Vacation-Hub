@@ -17,6 +17,7 @@ create table if not exists public.family_members (
 create table if not exists public.family_trips (
   id uuid primary key default gen_random_uuid(),
   family_id uuid not null references public.families(id) on delete cascade,
+  sort_order integer not null default 0,
   name text not null,
   destination_city text,
   flights jsonb not null default '[]'::jsonb,
@@ -26,6 +27,12 @@ create table if not exists public.family_trips (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.family_trips
+add column if not exists sort_order integer not null default 0;
+
+create index if not exists family_trips_family_sort_order_idx
+on public.family_trips (family_id, sort_order);
 
 create or replace function public.set_updated_at()
 returns trigger

@@ -159,6 +159,75 @@ button {
   opacity: 0.55;
 }
 
+.trip-list-item {
+  border-radius: 14px;
+  margin-bottom: 14px;
+  transition:
+    opacity 0.15s ease,
+    outline-color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.trip-list-item.is-dragging {
+  opacity: 0.55;
+}
+
+.trip-list-item.is-drag-over {
+  outline: 3px solid #2563eb;
+  outline-offset: 3px;
+}
+
+.trip-card-row {
+  align-items: stretch;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.trip-card-row .trip-card {
+  margin-bottom: 0 !important;
+}
+
+.trip-order-controls {
+  align-items: center;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: 1fr;
+  padding-top: 4px;
+}
+
+.trip-drag-handle,
+.trip-order-button {
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #0f172a;
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 700;
+  height: 36px;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0;
+  touch-action: none;
+  user-select: none;
+  width: 36px;
+}
+
+.trip-drag-handle {
+  cursor: grab;
+}
+
+.trip-drag-handle:active {
+  cursor: grabbing;
+}
+
+.trip-order-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
 .section-body > p {
   color: #64748b;
   margin: 4px 0;
@@ -200,6 +269,17 @@ button {
   .trip-card {
     border-radius: 12px !important;
     padding: 12px !important;
+  }
+
+  .trip-card-row {
+    gap: 8px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .trip-order-controls {
+    display: flex;
+    flex-wrap: wrap;
+    padding-top: 0;
   }
 
   .trip-card h2 {

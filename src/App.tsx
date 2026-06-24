@@ -4,7 +4,7 @@ import {
   useCallback,
   useRef,
 } from "react";
-import type { DragEvent } from "react";
+import type { PointerEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
 import TripCard from "./components/TripCard";
 
@@ -372,6 +372,8 @@ function App() {
   useState<number | null>(null);
 
   const didDragTrip = useRef(false);
+  const pointerDragTripIndex =
+    useRef<number | null>(null);
 
   const [deleteTarget,
   setDeleteTarget] =
@@ -443,52 +445,111 @@ function App() {
     );
   };
 
-  const handleTripDragStart = (
-    tripIndex: number,
-    event: DragEvent<HTMLButtonElement>
+  const getTripIndexFromPoint = (
+    clientX: number,
+    clientY: number
   ) => {
-    event.stopPropagation();
-    didDragTrip.current = false;
-    setDraggedTripIndex(tripIndex);
-    setDragOverTripIndex(tripIndex);
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData(
-      "text/plain",
-      String(tripIndex)
+    const element =
+      document.elementFromPoint(
+        clientX,
+        clientY
+      );
+    const tripElement =
+      element?.closest(
+        "[data-trip-index]"
+      ) as HTMLElement | null;
+    const tripIndex = Number(
+      tripElement?.dataset.tripIndex
     );
+
+    return Number.isInteger(tripIndex)
+      ? tripIndex
+      : null;
   };
 
-  const handleTripDrop = (
+  const clearTripPointerDrag = () => {
+    pointerDragTripIndex.current = null;
+    setDraggedTripIndex(null);
+    setDragOverTripIndex(null);
+  };
+
+  const handleTripPointerDown = (
     tripIndex: number,
-    event: DragEvent<HTMLDivElement>
+    event: PointerEvent<HTMLButtonElement>
   ) => {
     event.preventDefault();
     event.stopPropagation();
-
-    const sourceIndexText =
-      event.dataTransfer.getData(
-        "text/plain"
-      );
-    const sourceIndex =
-      Number(sourceIndexText);
-    const fromIndex = Number.isInteger(
-      sourceIndex
-    )
-      ? sourceIndex
-      : draggedTripIndex;
-
-    if (fromIndex !== null) {
-      didDragTrip.current = true;
-      moveTrip(fromIndex, tripIndex);
-    }
-
-    setDraggedTripIndex(null);
-    setDragOverTripIndex(null);
+    didDragTrip.current = false;
+    pointerDragTripIndex.current =
+      tripIndex;
+    setDraggedTripIndex(tripIndex);
+    setDragOverTripIndex(tripIndex);
+    event.currentTarget.setPointerCapture(
+      event.pointerId
+    );
   };
 
-  const handleTripDragEnd = () => {
-    setDraggedTripIndex(null);
-    setDragOverTripIndex(null);
+  const handleTripPointerMove = (
+    event: PointerEvent<HTMLButtonElement>
+  ) => {
+    if (
+      pointerDragTripIndex.current === null
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    didDragTrip.current = true;
+
+    const nextTripIndex =
+      getTripIndexFromPoint(
+        event.clientX,
+        event.clientY
+      );
+
+    if (nextTripIndex !== null) {
+      setDragOverTripIndex(
+        nextTripIndex
+      );
+    }
+  };
+
+  const handleTripPointerUp = (
+    event: PointerEvent<HTMLButtonElement>
+  ) => {
+    const fromIndex =
+      pointerDragTripIndex.current;
+
+    if (fromIndex === null) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const toIndex =
+      getTripIndexFromPoint(
+        event.clientX,
+        event.clientY
+      ) ?? dragOverTripIndex;
+
+    if (toIndex !== null) {
+      didDragTrip.current = true;
+      moveTrip(fromIndex, toIndex);
+    }
+
+    if (
+      event.currentTarget.hasPointerCapture(
+        event.pointerId
+      )
+    ) {
+      event.currentTarget.releasePointerCapture(
+        event.pointerId
+      );
+    }
+
+    clearTripPointerDrag();
   };
 
   
@@ -1695,20 +1756,8 @@ const renderToggleButton = (
     ]
       .filter(Boolean)
       .join(" ")}
+    data-trip-index={index}
     key={trip.id || index}
-    onDragEnter={(event) => {
-      event.preventDefault();
-      setDragOverTripIndex(index);
-    }}
-    onDragOver={(event) => {
-      event.preventDefault();
-      event.dataTransfer.dropEffect =
-        "move";
-      setDragOverTripIndex(index);
-    }}
-    onDrop={(event) =>
-      handleTripDrop(index, event)
-    }
     onClick={() => {
       if (didDragTrip.current) {
         didDragTrip.current = false;
@@ -1737,13 +1786,20 @@ const renderToggleButton = (
         <button
           aria-label={`Drag ${trip.name} to reorder`}
           className="trip-drag-handle"
-          draggable
-          onDragEnd={handleTripDragEnd}
-          onDragStart={(event) =>
-            handleTripDragStart(
+          onPointerCancel={
+            clearTripPointerDrag
+          }
+          onPointerDown={(event) =>
+            handleTripPointerDown(
               index,
               event
             )
+          }
+          onPointerMove={
+            handleTripPointerMove
+          }
+          onPointerUp={
+            handleTripPointerUp
           }
           title="Drag to reorder"
           type="button"

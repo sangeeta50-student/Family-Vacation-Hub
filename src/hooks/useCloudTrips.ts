@@ -46,43 +46,57 @@ const tripMatchKey = (trip: Trip) =>
       .toLowerCase(),
   ].join("|");
 
-const chooseLonger = <T,>(
+const chooseTripItems = <T,>(
   cloudItems: T[] = [],
-  localItems: T[] = []
-) =>
-  localItems.length > cloudItems.length
+  localItems: T[] = [],
+  preferLocalDetails = false
+) => {
+  if (preferLocalDetails) {
+    return localItems;
+  }
+
+  return localItems.length > cloudItems.length
     ? localItems
     : cloudItems;
+};
 
 const mergeLocalTripDetails = (
   cloudTrip: Trip,
-  localTrip: Trip
+  localTrip: Trip,
+  preferLocalDetails = false
 ): Trip => ({
   ...cloudTrip,
   destinationCity:
+    (preferLocalDetails &&
+      localTrip.destinationCity) ||
     cloudTrip.destinationCity ||
     localTrip.destinationCity,
-  flights: chooseLonger(
+  flights: chooseTripItems(
     cloudTrip.flights,
-    localTrip.flights
+    localTrip.flights,
+    preferLocalDetails
   ),
-  hotels: chooseLonger(
+  hotels: chooseTripItems(
     cloudTrip.hotels,
-    localTrip.hotels
+    localTrip.hotels,
+    preferLocalDetails
   ),
-  cars: chooseLonger(
+  cars: chooseTripItems(
     cloudTrip.cars,
-    localTrip.cars
+    localTrip.cars,
+    preferLocalDetails
   ),
-  activities: chooseLonger(
+  activities: chooseTripItems(
     cloudTrip.activities,
-    localTrip.activities
+    localTrip.activities,
+    preferLocalDetails
   ),
 });
 
 const mergeLocalAndCloudTrips = (
   cloudTrips: Trip[],
-  localTrips: Trip[]
+  localTrips: Trip[],
+  preferLocalDetails = false
 ) => {
   const localById = new Map(
     localTrips
@@ -110,7 +124,8 @@ const mergeLocalAndCloudTrips = (
       return localTrip
         ? mergeLocalTripDetails(
             cloudTrip,
-            localTrip
+            localTrip,
+            preferLocalDetails
           )
         : cloudTrip;
     }
@@ -307,7 +322,8 @@ export const useCloudTrips = (
           localTrips.length > 0
             ? mergeLocalAndCloudTrips(
                 cloudTrips,
-                localTrips
+                localTrips,
+                true
               )
             : cloudTrips;
         const shouldSaveMergedTrips =
@@ -381,12 +397,14 @@ export const useCloudTrips = (
         const currentWithLocal =
           mergeLocalAndCloudTrips(
             latestTrips.current,
-            localTrips
+            localTrips,
+            true
           );
         const tripsToSave =
           mergeLocalAndCloudTrips(
             cloudTrips,
-            currentWithLocal
+            currentWithLocal,
+            true
           );
         const savedTrips =
           await saveTrips(tripsToSave);

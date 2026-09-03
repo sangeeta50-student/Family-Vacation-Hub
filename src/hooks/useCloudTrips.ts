@@ -4,6 +4,10 @@ import {
   useRef,
   useState,
 } from "react";
+import type {
+  Dispatch,
+  SetStateAction,
+} from "react";
 import type { Session } from "@supabase/supabase-js";
 import { familyId, supabase } from "../lib/supabase";
 import {
@@ -371,7 +375,7 @@ const getErrorMessage = (
 export const useCloudTrips = (
   session: Session | null
 ) => {
-  const [trips, setTrips] =
+  const [trips, setTripsState] =
     useState<Trip[]>(readLocalTrips);
   const [status, setStatus] =
     useState<CloudStatus>("offline");
@@ -389,6 +393,27 @@ export const useCloudTrips = (
     useRef<number | null>(null);
   const reloadTimer =
     useRef<number | null>(null);
+
+  const setTrips: Dispatch<
+    SetStateAction<Trip[]>
+  > = useCallback((nextTrips) => {
+    const resolvedTrips =
+      typeof nextTrips === "function"
+        ? nextTrips(
+            latestTrips.current
+          )
+        : nextTrips;
+    const serializedTrips =
+      serializeTrips(resolvedTrips);
+
+    latestTrips.current =
+      resolvedTrips;
+    localStorage.setItem(
+      "trips",
+      serializedTrips
+    );
+    setTripsState(resolvedTrips);
+  }, []);
 
   const loadTrips = useCallback(
     async (migrateLocalTrips = false) => {
@@ -478,7 +503,7 @@ export const useCloudTrips = (
         setIsLoading(false);
       }
     },
-    [session]
+    [session, setTrips]
   );
 
   const syncTripsNow = useCallback(
@@ -530,7 +555,7 @@ export const useCloudTrips = (
         );
       }
     },
-    [session]
+    [session, setTrips]
   );
 
   useEffect(() => {
@@ -697,7 +722,7 @@ export const useCloudTrips = (
         );
       }
     };
-  }, [session, trips]);
+  }, [session, setTrips, trips]);
 
   return {
     trips,

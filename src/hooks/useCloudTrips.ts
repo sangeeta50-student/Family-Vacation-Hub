@@ -493,18 +493,12 @@ export const useCloudTrips = (
       try {
         const cloudTrips =
           await fetchTrips();
-        const localTrips =
-          readLocalTrips();
-        const currentWithLocal =
-          mergeLocalAndCloudTrips(
-            latestTrips.current,
-            localTrips,
-            true
-          );
+        const currentTrips =
+          latestTrips.current;
         const tripsToSave =
           replaceCloudDetailsWithLocal(
             cloudTrips,
-            currentWithLocal
+            currentTrips
           );
         const savedTrips =
           await saveTrips(tripsToSave);

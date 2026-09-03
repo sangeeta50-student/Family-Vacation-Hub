@@ -37,6 +37,12 @@ import { parseActivities } from "./parsers/activityParser";
 import { useCloudTrips } from "./hooks/useCloudTrips";
 
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
+import {
+  markItemDeleted,
+  touchItem,
+  visibleItemCount,
+  visibleItems,
+} from "./lib/syncMetadata";
 
 import type { Flight } from "./types/Flight";
 
@@ -862,12 +868,15 @@ const saveActivity = () => {
               (activity, index) =>
                 index ===
                 editingActivityIndex
-                  ? activityData
+                  ? touchItem(
+                      activityData,
+                      activity
+                    )
                   : activity
             )
           : [
               ...currentActivities,
-              activityData,
+              touchItem(activityData),
             ];
 
       return {
@@ -909,7 +918,10 @@ const importActivityDetails = () => {
       ...selectedTrip,
       activities: [
         ...(selectedTrip.activities || []),
-        ...parsedActivities,
+        ...parsedActivities.map(
+          (activity) =>
+            touchItem(activity)
+        ),
       ],
     })
   );
@@ -957,12 +969,15 @@ const saveFlight = () => {
               (flight, index) =>
                 index ===
                 editingFlightIndex
-                  ? flightData
+                  ? touchItem(
+                      flightData,
+                      flight
+                    )
                   : flight
             )
           : [
               ...currentFlights,
-              flightData,
+              touchItem(flightData),
             ];
 
       return {
@@ -1010,7 +1025,10 @@ const importFlightDetails = () => {
       ...selectedTrip,
       flights: [
         ...(selectedTrip.flights || []),
-        ...parsedFlights,
+        ...parsedFlights.map(
+          (flight) =>
+            touchItem(flight)
+        ),
       ],
     })
   );
@@ -1064,12 +1082,15 @@ const saveHotel = () => {
               (hotel, index) =>
                 index ===
                 editingHotelIndex
-                  ? hotelData
+                  ? touchItem(
+                      hotelData,
+                      hotel
+                    )
                   : hotel
             )
           : [
               ...currentHotels,
-              hotelData,
+              touchItem(hotelData),
             ];
 
       return {
@@ -1102,7 +1123,10 @@ const importHotelDetails = () => {
       ...selectedTrip,
       hotels: [
         ...(selectedTrip.hotels || []),
-        ...parsedHotels,
+        ...parsedHotels.map(
+          (hotel) =>
+            touchItem(hotel)
+        ),
       ],
     })
   );
@@ -1165,12 +1189,15 @@ const saveCar = () => {
               (car, index) =>
                 index ===
                 editingCarIndex
-                  ? carData
+                  ? touchItem(
+                      carData,
+                      car
+                    )
                   : car
             )
           : [
               ...currentCars,
-              carData,
+              touchItem(carData),
             ];
 
       return {
@@ -1201,7 +1228,9 @@ const importCarDetails = () => {
       ...selectedTrip,
       cars: [
         ...(selectedTrip.cars || []),
-        ...parsedCars,
+        ...parsedCars.map((car) =>
+          touchItem(car)
+        ),
       ],
     })
   );
@@ -1492,10 +1521,15 @@ const confirmDelete = () => {
       ) {
         return {
           ...trip,
-          flights: trip.flights.filter(
-            (_, itemIndex) =>
+          flights: trip.flights.map(
+            (flight, itemIndex) =>
               itemIndex !==
               deleteTarget.itemIndex
+                ? flight
+                : markItemDeleted(
+                    "flights",
+                    flight
+                  )
           ),
         };
       }
@@ -1505,10 +1539,15 @@ const confirmDelete = () => {
       ) {
         return {
           ...trip,
-          hotels: trip.hotels.filter(
-            (_, itemIndex) =>
+          hotels: trip.hotels.map(
+            (hotel, itemIndex) =>
               itemIndex !==
               deleteTarget.itemIndex
+                ? hotel
+                : markItemDeleted(
+                    "hotels",
+                    hotel
+                  )
           ),
         };
       }
@@ -1518,10 +1557,15 @@ const confirmDelete = () => {
       ) {
         return {
           ...trip,
-          cars: trip.cars.filter(
-            (_, itemIndex) =>
+          cars: trip.cars.map(
+            (car, itemIndex) =>
               itemIndex !==
               deleteTarget.itemIndex
+                ? car
+                : markItemDeleted(
+                    "cars",
+                    car
+                  )
           ),
         };
       }
@@ -1532,10 +1576,15 @@ const confirmDelete = () => {
         return {
           ...trip,
           activities:
-            trip.activities.filter(
-              (_, itemIndex) =>
+            trip.activities.map(
+              (activity, itemIndex) =>
                 itemIndex !==
                 deleteTarget.itemIndex
+                  ? activity
+                  : markItemDeleted(
+                      "activities",
+                      activity
+                    )
             ),
         };
       }
@@ -1872,13 +1921,17 @@ const renderToggleButton = (
             ? `▼ ${trip.name}`
             : `▶ ${trip.name}`
         }
-        flights={trip.flights.length}
+        flights={visibleItemCount(
+          trip.flights
+        )}
         hotels={
-          trip.hotels?.length || 0
+          visibleItemCount(trip.hotels)
         }
-        cars={trip.cars?.length || 0}
+        cars={visibleItemCount(trip.cars)}
         activities={
-          trip.activities?.length || 0
+          visibleItemCount(
+            trip.activities
+          )
         }
       />
     </div>
@@ -2795,12 +2848,22 @@ const renderToggleButton = (
     isSectionOpen(
       activitySectionKey
     );
+  const visibleFlights =
+    visibleItems(trip.flights);
+  const visibleHotels =
+    visibleItems(trip.hotels);
+  const visibleCars =
+    visibleItems(trip.cars);
+  const visibleActivities =
+    visibleItems(
+      trip.activities
+    );
 
   return (
     <div className="collapsible-sections">
       <section className="collapsible-section">
         {renderToggleButton(
-          `Flights (${trip.flights?.length || 0})`,
+          `Flights (${visibleFlights.length})`,
           flightsOpen,
           () =>
             toggleSection(
@@ -2814,7 +2877,7 @@ const renderToggleButton = (
             <button
               className="sort-section-button"
               disabled={
-                !trip.flights?.length
+                !visibleFlights.length
               }
               onClick={(event) => {
                 event.stopPropagation();
@@ -2828,11 +2891,13 @@ const renderToggleButton = (
               Sort Flights by Date
             </button>
 
-            {trip.flights?.length ? (
-              trip.flights.map(
+            {visibleFlights.length ? (
+              visibleFlights.map(
                 (
-                  flight,
-                  flightIndex
+                  {
+                    item: flight,
+                    index: flightIndex,
+                  }
                 ) => {
                   const itemKey =
                     getItemKey(
@@ -2889,7 +2954,7 @@ const renderToggleButton = (
 
       <section className="collapsible-section">
         {renderToggleButton(
-          `Hotels (${trip.hotels?.length || 0})`,
+          `Hotels (${visibleHotels.length})`,
           hotelsOpen,
           () =>
             toggleSection(
@@ -2903,7 +2968,7 @@ const renderToggleButton = (
             <button
               className="sort-section-button"
               disabled={
-                !trip.hotels?.length
+                !visibleHotels.length
               }
               onClick={(event) => {
                 event.stopPropagation();
@@ -2917,11 +2982,13 @@ const renderToggleButton = (
               Sort Hotels by Date
             </button>
 
-            {trip.hotels?.length ? (
-              trip.hotels.map(
+            {visibleHotels.length ? (
+              visibleHotels.map(
                 (
-                  hotel,
-                  hotelIndex
+                  {
+                    item: hotel,
+                    index: hotelIndex,
+                  }
                 ) => {
                   const itemKey =
                     getItemKey(
@@ -2978,7 +3045,7 @@ const renderToggleButton = (
 
       <section className="collapsible-section">
         {renderToggleButton(
-          `Cars (${trip.cars?.length || 0})`,
+          `Cars (${visibleCars.length})`,
           carsOpen,
           () =>
             toggleSection(carSectionKey),
@@ -2990,7 +3057,7 @@ const renderToggleButton = (
             <button
               className="sort-section-button"
               disabled={
-                !trip.cars?.length
+                !visibleCars.length
               }
               onClick={(event) => {
                 event.stopPropagation();
@@ -3004,9 +3071,12 @@ const renderToggleButton = (
               Sort Cars by Date
             </button>
 
-            {trip.cars?.length ? (
-              trip.cars.map(
-                (car, carIndex) => {
+            {visibleCars.length ? (
+              visibleCars.map(
+                ({
+                  item: car,
+                  index: carIndex,
+                }) => {
                   const itemKey =
                     getItemKey(
                       trip,
@@ -3061,7 +3131,7 @@ const renderToggleButton = (
       <section className="collapsible-section">
         {renderToggleButton(
           `Activities (${
-            trip.activities?.length || 0
+            visibleActivities.length
           })`,
           activitiesOpen,
           () =>
@@ -3076,7 +3146,7 @@ const renderToggleButton = (
             <button
               className="sort-section-button"
               disabled={
-                !trip.activities?.length
+                !visibleActivities.length
               }
               onClick={(event) => {
                 event.stopPropagation();
@@ -3090,11 +3160,13 @@ const renderToggleButton = (
               Sort Activities by Date
             </button>
 
-            {trip.activities?.length ? (
-              trip.activities.map(
+            {visibleActivities.length ? (
+              visibleActivities.map(
                 (
-                  activity,
-                  activityIndex
+                  {
+                    item: activity,
+                    index: activityIndex,
+                  }
                 ) => {
                   const itemKey =
                     getItemKey(

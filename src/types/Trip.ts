@@ -2,6 +2,12 @@ import type { Flight } from "./Flight";
 import type { Activity } from "./Activity";
 
 export type Hotel = {
+  id?: string;
+
+  updatedAt?: string;
+
+  deletedAt?: string;
+
   name?: string;
   address?: string;
   phone?: string;
@@ -13,6 +19,12 @@ export type Hotel = {
 };
 
 export type CarRental = {
+  id?: string;
+
+  updatedAt?: string;
+
+  deletedAt?: string;
+
   company?: string;
   vehicleType?: string;
   vehicle?: string;

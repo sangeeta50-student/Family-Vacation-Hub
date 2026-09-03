@@ -1,4 +1,10 @@
 export type Flight = {
+  id?: string;
+
+  updatedAt?: string;
+
+  deletedAt?: string;
+
   flightNumber: string;
 
   from: string;

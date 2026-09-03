@@ -1,4 +1,10 @@
 export type Activity = {
+  id?: string;
+
+  updatedAt?: string;
+
+  deletedAt?: string;
+
   name: string;
 
   date?: string;

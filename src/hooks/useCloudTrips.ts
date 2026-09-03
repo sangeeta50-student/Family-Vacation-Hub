@@ -218,6 +218,78 @@ const mergeLocalAndCloudTrips = (
   ];
 };
 
+const replaceCloudDetailsWithLocal = (
+  cloudTrips: Trip[],
+  localTrips: Trip[]
+) => {
+  const localById = new Map(
+    localTrips
+      .filter((trip) => trip.id)
+      .map((trip) => [
+        trip.id,
+        trip,
+      ])
+  );
+  const localByName = new Map(
+    localTrips.map((trip) => [
+      tripMatchKey(trip),
+      trip,
+    ])
+  );
+  const mergedTrips = cloudTrips.map(
+    (cloudTrip) => {
+      const localTrip =
+        (cloudTrip.id &&
+          localById.get(cloudTrip.id)) ||
+        localByName.get(
+          tripMatchKey(cloudTrip)
+        );
+
+      if (!localTrip) {
+        return cloudTrip;
+      }
+
+      return {
+        ...cloudTrip,
+        destinationCity:
+          localTrip.destinationCity ||
+          cloudTrip.destinationCity,
+        flights:
+          localTrip.flights || [],
+        hotels:
+          localTrip.hotels || [],
+        cars: localTrip.cars || [],
+        activities:
+          localTrip.activities || [],
+      };
+    }
+  );
+  const cloudIds = new Set(
+    cloudTrips
+      .map((trip) => trip.id)
+      .filter(Boolean)
+  );
+  const cloudNames = new Set(
+    cloudTrips.map(tripMatchKey)
+  );
+  const localOnlyTrips =
+    localTrips.filter(
+      (trip) =>
+        !(
+          trip.id &&
+          cloudIds.has(trip.id)
+        ) &&
+        !cloudNames.has(
+          tripMatchKey(trip)
+        )
+    );
+
+  return [
+    ...mergedTrips,
+    ...localOnlyTrips,
+  ];
+};
+
 const sameDetails = (
   first: Trip,
   second: Trip
@@ -430,10 +502,9 @@ export const useCloudTrips = (
             true
           );
         const tripsToSave =
-          mergeLocalAndCloudTrips(
+          replaceCloudDetailsWithLocal(
             cloudTrips,
-            currentWithLocal,
-            true
+            currentWithLocal
           );
         const savedTrips =
           await saveTrips(tripsToSave);
@@ -575,10 +646,9 @@ export const useCloudTrips = (
           const cloudTrips =
             await fetchTrips();
           const tripsToSave =
-            mergeLocalAndCloudTrips(
+            replaceCloudDetailsWithLocal(
               cloudTrips,
-              trips,
-              true
+              trips
             );
           const savedTrips =
             await saveTrips(

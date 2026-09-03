@@ -389,6 +389,29 @@ function App() {
       sortOrder: index,
     }));
 
+  const updateTripAtIndex = (
+    tripIndex: number,
+    updateTrip: (trip: Trip) => Trip
+  ) => {
+    setTrips((currentTrips) => {
+      const selectedTrip =
+        currentTrips[tripIndex];
+
+      if (!selectedTrip) {
+        return currentTrips;
+      }
+
+      const updatedTrips = [
+        ...currentTrips,
+      ];
+
+      updatedTrips[tripIndex] =
+        updateTrip(selectedTrip);
+
+      return updatedTrips;
+    });
+  };
+
   const moveTrip = (
     fromIndex: number,
     toIndex: number
@@ -396,53 +419,66 @@ function App() {
     if (
       fromIndex === toIndex ||
       fromIndex < 0 ||
-      toIndex < 0 ||
-      fromIndex >= trips.length ||
-      toIndex >= trips.length
+      toIndex < 0
     ) {
       return;
     }
 
-    const selectedTrip =
-      selectedTripIndex !== null
-        ? trips[selectedTripIndex]
-        : null;
-    const reorderedTrips = [...trips];
-    const [movedTrip] =
+    setTrips((currentTrips) => {
+      if (
+        fromIndex >=
+          currentTrips.length ||
+        toIndex >= currentTrips.length
+      ) {
+        return currentTrips;
+      }
+
+      const selectedTrip =
+        selectedTripIndex !== null
+          ? currentTrips[
+              selectedTripIndex
+            ]
+          : null;
+      const reorderedTrips = [
+        ...currentTrips,
+      ];
+      const [movedTrip] =
+        reorderedTrips.splice(
+          fromIndex,
+          1
+        );
+
       reorderedTrips.splice(
-        fromIndex,
-        1
+        toIndex,
+        0,
+        movedTrip
       );
 
-    reorderedTrips.splice(
-      toIndex,
-      0,
-      movedTrip
-    );
+      const orderedTrips =
+        withTripSortOrder(
+          reorderedTrips
+        );
 
-    const orderedTrips =
-      withTripSortOrder(
-        reorderedTrips
-      );
+      if (selectedTrip) {
+        const nextSelectedIndex =
+          orderedTrips.findIndex(
+            (trip) =>
+              selectedTrip.id
+                ? trip.id ===
+                  selectedTrip.id
+                : trip ===
+                  selectedTrip
+          );
 
-    setTrips(orderedTrips);
+        setSelectedTripIndex(
+          nextSelectedIndex >= 0
+            ? nextSelectedIndex
+            : null
+        );
+      }
 
-    if (!selectedTrip) {
-      return;
-    }
-
-    const nextSelectedIndex =
-      orderedTrips.findIndex((trip) =>
-        selectedTrip.id
-          ? trip.id === selectedTrip.id
-          : trip === selectedTrip
-      );
-
-    setSelectedTripIndex(
-      nextSelectedIndex >= 0
-        ? nextSelectedIndex
-        : null
-    );
+      return orderedTrips;
+    });
   };
 
   const getTripIndexFromPoint = (
@@ -815,31 +851,31 @@ const saveActivity = () => {
   source: "Manual",
 };
 
-  const updatedTrips = [...trips];
-  const selectedTrip =
-    updatedTrips[selectedTripIndex];
-  const currentActivities =
-    selectedTrip.activities || [];
-  const nextActivities =
-    editingActivityIndex !== null
-      ? currentActivities.map(
-          (activity, index) =>
-            index ===
-            editingActivityIndex
-              ? activityData
-              : activity
-        )
-      : [
-          ...currentActivities,
-          activityData,
-        ];
+  updateTripAtIndex(
+    selectedTripIndex,
+    (selectedTrip) => {
+      const currentActivities =
+        selectedTrip.activities || [];
+      const nextActivities =
+        editingActivityIndex !== null
+          ? currentActivities.map(
+              (activity, index) =>
+                index ===
+                editingActivityIndex
+                  ? activityData
+                  : activity
+            )
+          : [
+              ...currentActivities,
+              activityData,
+            ];
 
-  updatedTrips[selectedTripIndex] = {
-    ...selectedTrip,
-    activities: nextActivities,
-  };
-
-  setTrips(updatedTrips);
+      return {
+        ...selectedTrip,
+        activities: nextActivities,
+      };
+    }
+  );
 
   setActivityName("");
   setActivityDate("");
@@ -867,19 +903,16 @@ const importActivityDetails = () => {
   )
     return;
 
-  const updatedTrips = [...trips];
-  const selectedTrip =
-    updatedTrips[selectedTripIndex];
-
-  updatedTrips[selectedTripIndex] = {
-    ...selectedTrip,
-    activities: [
-      ...(selectedTrip.activities || []),
-      ...parsedActivities,
-    ],
-  };
-
-  setTrips(updatedTrips);
+  updateTripAtIndex(
+    selectedTripIndex,
+    (selectedTrip) => ({
+      ...selectedTrip,
+      activities: [
+        ...(selectedTrip.activities || []),
+        ...parsedActivities,
+      ],
+    })
+  );
   setActivityImportText("");
   setShowActivityImportModal(
     false
@@ -913,30 +946,31 @@ const saveFlight = () => {
     flightNotes,
 };
 
-  const updatedTrips = [...trips];
-  const selectedTrip =
-    updatedTrips[selectedTripIndex];
-  const currentFlights =
-    selectedTrip.flights || [];
-  const nextFlights =
-    editingFlightIndex !== null
-      ? currentFlights.map(
-          (flight, index) =>
-            index === editingFlightIndex
-              ? flightData
-              : flight
-        )
-      : [
-          ...currentFlights,
-          flightData,
-        ];
+  updateTripAtIndex(
+    selectedTripIndex,
+    (selectedTrip) => {
+      const currentFlights =
+        selectedTrip.flights || [];
+      const nextFlights =
+        editingFlightIndex !== null
+          ? currentFlights.map(
+              (flight, index) =>
+                index ===
+                editingFlightIndex
+                  ? flightData
+                  : flight
+            )
+          : [
+              ...currentFlights,
+              flightData,
+            ];
 
-  updatedTrips[selectedTripIndex] = {
-    ...selectedTrip,
-    flights: nextFlights,
-  };
-
-  setTrips(updatedTrips);
+      return {
+        ...selectedTrip,
+        flights: nextFlights,
+      };
+    }
+  );
 
   setFlightNumber("");
   setFlightFrom("");
@@ -970,19 +1004,16 @@ const importFlightDetails = () => {
   )
     return;
 
-  const updatedTrips = [...trips];
-  const selectedTrip =
-    updatedTrips[selectedTripIndex];
-
-  updatedTrips[selectedTripIndex] = {
-    ...selectedTrip,
-    flights: [
-      ...(selectedTrip.flights || []),
-      ...parsedFlights,
-    ],
-  };
-
-  setTrips(updatedTrips);
+  updateTripAtIndex(
+    selectedTripIndex,
+    (selectedTrip) => ({
+      ...selectedTrip,
+      flights: [
+        ...(selectedTrip.flights || []),
+        ...parsedFlights,
+      ],
+    })
+  );
 
   setFlightImportText("");
 
@@ -1022,30 +1053,31 @@ const saveHotel = () => {
     notes: hotelNotes,
   };
 
-  const updatedTrips = [...trips];
-  const selectedTrip =
-    updatedTrips[selectedTripIndex];
-  const currentHotels =
-    selectedTrip.hotels || [];
-  const nextHotels =
-    editingHotelIndex !== null
-      ? currentHotels.map(
-          (hotel, index) =>
-            index === editingHotelIndex
-              ? hotelData
-              : hotel
-        )
-      : [
-          ...currentHotels,
-          hotelData,
-        ];
+  updateTripAtIndex(
+    selectedTripIndex,
+    (selectedTrip) => {
+      const currentHotels =
+        selectedTrip.hotels || [];
+      const nextHotels =
+        editingHotelIndex !== null
+          ? currentHotels.map(
+              (hotel, index) =>
+                index ===
+                editingHotelIndex
+                  ? hotelData
+                  : hotel
+            )
+          : [
+              ...currentHotels,
+              hotelData,
+            ];
 
-  updatedTrips[selectedTripIndex] = {
-    ...selectedTrip,
-    hotels: nextHotels,
-  };
-
-  setTrips(updatedTrips);
+      return {
+        ...selectedTrip,
+        hotels: nextHotels,
+      };
+    }
+  );
   clearHotelForm();
   setShowHotelForm(false);
 };
@@ -1064,19 +1096,16 @@ const importHotelDetails = () => {
   )
     return;
 
-  const updatedTrips = [...trips];
-  const selectedTrip =
-    updatedTrips[selectedTripIndex];
-
-  updatedTrips[selectedTripIndex] = {
-    ...selectedTrip,
-    hotels: [
-      ...(selectedTrip.hotels || []),
-      ...parsedHotels,
-    ],
-  };
-
-  setTrips(updatedTrips);
+  updateTripAtIndex(
+    selectedTripIndex,
+    (selectedTrip) => ({
+      ...selectedTrip,
+      hotels: [
+        ...(selectedTrip.hotels || []),
+        ...parsedHotels,
+      ],
+    })
+  );
   setHotelImportText("");
   setShowHotelImportModal(
     false
@@ -1125,29 +1154,31 @@ const saveCar = () => {
     notes: carNotes,
   };
 
-  const updatedTrips = [...trips];
-  const selectedTrip =
-    updatedTrips[selectedTripIndex];
-  const currentCars =
-    selectedTrip.cars || [];
-  const nextCars =
-    editingCarIndex !== null
-      ? currentCars.map((car, index) =>
-          index === editingCarIndex
-            ? carData
-            : car
-        )
-      : [
-          ...currentCars,
-          carData,
-        ];
+  updateTripAtIndex(
+    selectedTripIndex,
+    (selectedTrip) => {
+      const currentCars =
+        selectedTrip.cars || [];
+      const nextCars =
+        editingCarIndex !== null
+          ? currentCars.map(
+              (car, index) =>
+                index ===
+                editingCarIndex
+                  ? carData
+                  : car
+            )
+          : [
+              ...currentCars,
+              carData,
+            ];
 
-  updatedTrips[selectedTripIndex] = {
-    ...selectedTrip,
-    cars: nextCars,
-  };
-
-  setTrips(updatedTrips);
+      return {
+        ...selectedTrip,
+        cars: nextCars,
+      };
+    }
+  );
   clearCarForm();
   setShowCarForm(false);
 };
@@ -1164,19 +1195,16 @@ const importCarDetails = () => {
   if (parsedCars.length === 0)
     return;
 
-  const updatedTrips = [...trips];
-  const selectedTrip =
-    updatedTrips[selectedTripIndex];
-
-  updatedTrips[selectedTripIndex] = {
-    ...selectedTrip,
-    cars: [
-      ...(selectedTrip.cars || []),
-      ...parsedCars,
-    ],
-  };
-
-  setTrips(updatedTrips);
+  updateTripAtIndex(
+    selectedTripIndex,
+    (selectedTrip) => ({
+      ...selectedTrip,
+      cars: [
+        ...(selectedTrip.cars || []),
+        ...parsedCars,
+      ],
+    })
+  );
   setCarImportText("");
   setShowCarImportModal(false);
 };
@@ -1435,11 +1463,13 @@ const confirmDelete = () => {
   if (!deleteTarget) return;
 
   if (deleteTarget.kind === "trip") {
-    setTrips(
-      trips.filter(
-        (_, index) =>
-          index !==
-          deleteTarget.tripIndex
+    setTrips((currentTrips) =>
+      withTripSortOrder(
+        currentTrips.filter(
+          (_, index) =>
+            index !==
+            deleteTarget.tripIndex
+        )
       )
     );
 
@@ -1448,8 +1478,8 @@ const confirmDelete = () => {
     return;
   }
 
-  setTrips(
-    trips.map((trip, tripIndex) => {
+  setTrips((currentTrips) =>
+    currentTrips.map((trip, tripIndex) => {
       if (
         tripIndex !==
         deleteTarget.tripIndex
@@ -3179,29 +3209,30 @@ const renderToggleButton = (
             )
               return;
 
-            const trip: Trip = {
-              id: crypto.randomUUID(),
+            setTrips(
+              (currentTrips) => [
+                ...currentTrips,
+                {
+                  id: crypto.randomUUID(),
 
-              sortOrder: trips.length,
+                  sortOrder:
+                    currentTrips.length,
 
-              name: newTripName,
+                  name: newTripName,
 
-              destinationCity:
-                newTripDestination,
+                  destinationCity:
+                    newTripDestination,
 
-              flights: [],
+                  flights: [],
 
-              hotels: [],
+                  hotels: [],
 
-              cars: [],
+                  cars: [],
 
-              activities: [],
-            };
-
-            setTrips([
-              ...trips,
-              trip,
-            ]);
+                  activities: [],
+                },
+              ]
+            );
 
             setNewTripName("");
             setNewTripDestination(
@@ -3267,19 +3298,13 @@ const renderToggleButton = (
             )
               return;
 
-            const updatedTrips =
-              [...trips];
-
-            updatedTrips[
-              renameTripIndex
-            ] = {
-              ...updatedTrips[
-                renameTripIndex
-              ],
-              name: renameTripName,
-            };
-
-            setTrips(updatedTrips);
+            updateTripAtIndex(
+              renameTripIndex,
+              (trip) => ({
+                ...trip,
+                name: renameTripName,
+              })
+            );
             setRenameTripIndex(null);
             setRenameTripName("");
           }}

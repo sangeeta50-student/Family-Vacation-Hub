@@ -46,13 +46,75 @@ const tripMatchKey = (trip: Trip) =>
       .toLowerCase(),
   ].join("|");
 
+const normalizeForCompare = (
+  value: unknown
+): unknown => {
+  if (Array.isArray(value)) {
+    return value.map(normalizeForCompare);
+  }
+
+  if (
+    value &&
+    typeof value === "object"
+  ) {
+    return Object.fromEntries(
+      Object.entries(value)
+        .sort(([first], [second]) =>
+          first.localeCompare(second)
+        )
+        .map(([key, entry]) => [
+          key,
+          normalizeForCompare(entry),
+        ])
+    );
+  }
+
+  return value;
+};
+
+const stableStringify = (
+  value: unknown
+) =>
+  JSON.stringify(
+    normalizeForCompare(value)
+  );
+
+const mergeTripItems = <T,>(
+  cloudItems: T[] = [],
+  localItems: T[] = []
+) => {
+  const mergedItems = [...cloudItems];
+  const mergedItemKeys = new Set(
+    mergedItems.map((item) =>
+      stableStringify(item)
+    )
+  );
+
+  localItems.forEach((item) => {
+    const itemKey =
+      stableStringify(item);
+
+    if (
+      !mergedItemKeys.has(itemKey)
+    ) {
+      mergedItemKeys.add(itemKey);
+      mergedItems.push(item);
+    }
+  });
+
+  return mergedItems;
+};
+
 const chooseTripItems = <T,>(
   cloudItems: T[] = [],
   localItems: T[] = [],
   preferLocalDetails = false
 ) => {
   if (preferLocalDetails) {
-    return localItems;
+    return mergeTripItems(
+      cloudItems,
+      localItems
+    );
   }
 
   return localItems.length > cloudItems.length
@@ -155,39 +217,6 @@ const mergeLocalAndCloudTrips = (
     ...localOnlyTrips,
   ];
 };
-
-const normalizeForCompare = (
-  value: unknown
-): unknown => {
-  if (Array.isArray(value)) {
-    return value.map(normalizeForCompare);
-  }
-
-  if (
-    value &&
-    typeof value === "object"
-  ) {
-    return Object.fromEntries(
-      Object.entries(value)
-        .sort(([first], [second]) =>
-          first.localeCompare(second)
-        )
-        .map(([key, entry]) => [
-          key,
-          normalizeForCompare(entry),
-        ])
-    );
-  }
-
-  return value;
-};
-
-const stableStringify = (
-  value: unknown
-) =>
-  JSON.stringify(
-    normalizeForCompare(value)
-  );
 
 const sameDetails = (
   first: Trip,
@@ -543,10 +572,20 @@ export const useCloudTrips = (
         saveTimer.current = null;
 
         try {
+          const cloudTrips =
+            await fetchTrips();
+          const tripsToSave =
+            mergeLocalAndCloudTrips(
+              cloudTrips,
+              trips,
+              true
+            );
           const savedTrips =
-            await saveTrips(trips);
+            await saveTrips(
+              tripsToSave
+            );
           assertTripsWereSaved(
-            trips,
+            tripsToSave,
             savedTrips
           );
 
@@ -569,6 +608,10 @@ export const useCloudTrips = (
 
           lastSavedTrips.current =
             savedTripsJson;
+          localStorage.setItem(
+            "trips",
+            savedTripsJson
+          );
           setTrips(savedTrips);
           setStatus("synced");
           setErrorMessage("");

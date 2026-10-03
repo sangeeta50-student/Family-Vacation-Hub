@@ -98,6 +98,39 @@ const writeDeletedTrips = (
   );
 };
 
+const deletedTripFromTrip = (
+  trip: Trip,
+  deletedAt = new Date().toISOString()
+): DeletedTrip => ({
+  ...(trip.id ? { id: trip.id } : {}),
+  key: tripMatchKey(trip),
+  deletedAt,
+});
+
+const recordDeletedTrip = (
+  trip: Trip
+) => {
+  const existingDeletedTrips =
+    readDeletedTrips();
+  const deletedByKey = new Map(
+    existingDeletedTrips.map(
+      (deletedTrip) => [
+        deletedTrip.key,
+        deletedTrip,
+      ]
+    )
+  );
+
+  deletedByKey.set(
+    tripMatchKey(trip),
+    deletedTripFromTrip(trip)
+  );
+
+  writeDeletedTrips(
+    Array.from(deletedByKey.values())
+  );
+};
+
 const isDeletedTrip = (
   trip: Trip,
   deletedTrips: DeletedTrip[]
@@ -296,7 +329,7 @@ const clearConfirmedDeletedTrips = (
     return;
   }
 
-  writeDeletedTrips(
+  const stillDeletedTrips =
     deletedTrips.filter(
       (deletedTrip) =>
         savedTrips.some(
@@ -307,7 +340,10 @@ const clearConfirmedDeletedTrips = (
             deletedTrip.key ===
               tripMatchKey(trip)
         )
-    )
+    );
+
+  writeDeletedTrips(
+    stillDeletedTrips
   );
 };
 
@@ -535,6 +571,34 @@ export const useCloudTrips = (
     [session, setTrips]
   );
 
+  const deleteTripAtIndex = useCallback(
+    (tripIndex: number) => {
+      setTrips((currentTrips) => {
+        const tripToDelete =
+          currentTrips[tripIndex];
+
+        if (!tripToDelete) {
+          return currentTrips;
+        }
+
+        recordDeletedTrip(
+          tripToDelete
+        );
+
+        return currentTrips
+          .filter(
+            (_, index) =>
+              index !== tripIndex
+          )
+          .map((trip, index) => ({
+            ...trip,
+            sortOrder: index,
+          }));
+      });
+    },
+    [setTrips]
+  );
+
   useEffect(() => {
     latestTrips.current = trips;
 
@@ -719,5 +783,6 @@ export const useCloudTrips = (
     isLoading,
     reloadTrips: loadTrips,
     syncTripsNow,
+    deleteTripAtIndex,
   };
 };

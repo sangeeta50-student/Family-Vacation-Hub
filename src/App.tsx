@@ -38,6 +38,7 @@ import { useCloudTrips } from "./hooks/useCloudTrips";
 
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
 import {
+  isDeletedItem,
   markItemDeleted,
   touchItem,
   visibleItemCount,
@@ -125,6 +126,7 @@ function App() {
     errorMessage: cloudErrorMessage,
     isLoading: isTripsLoading,
     syncTripsNow,
+    deleteTripAtIndex,
   } = useCloudTrips(
     isMfaVerified &&
       hasConfiguredPassword
@@ -248,33 +250,68 @@ function App() {
     date?: string,
     time?: string
   ) => {
-    if (!date?.trim()) {
+    const cleanedDate = (date || "")
+      .replace(/[\u00a0\u202f]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (!cleanedDate) {
       return Number.POSITIVE_INFINITY;
     }
 
-    const dateText = date
-      .trim()
-      .replace(
-        /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun),?\s+/i,
-        ""
-      );
-    const parsed = Date.parse(
-      `${dateText} ${time || ""}`.trim()
+    const cleanedTime = (time || "")
+      .replace(/[\u00a0\u202f]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    const dateText = cleanedDate.replace(
+      /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)(day)?,?\s+/i,
+      ""
     );
+    const dateWithYear =
+      /\b\d{4}\b/.test(dateText) ||
+      /^\d{4}-\d{1,2}-\d{1,2}$/.test(
+        dateText
+      )
+        ? dateText
+        : `${dateText}, ${new Date().getFullYear()}`;
+    const parsedDate = Date.parse(
+      dateWithYear
+    );
+    const parsedDateTime = Date.parse(
+      `${dateWithYear} ${cleanedTime}`.trim()
+    );
+    const parsed = Number.isNaN(
+      parsedDateTime
+    )
+      ? parsedDate
+      : parsedDateTime;
 
     return Number.isNaN(parsed)
       ? Number.POSITIVE_INFINITY
       : parsed;
   };
 
-  const sortByDate = <T,>(
+  const sortByDate = <
+    T extends { deletedAt?: string },
+  >(
     items: T[],
     getValue: (item: T) => number
-  ) =>
-    [...items].sort(
+  ) => {
+    const visible = items.filter(
+      (item) => !isDeletedItem(item)
+    );
+    const deleted = items.filter(
+      isDeletedItem
+    );
+
+    return [
+      ...visible.sort(
       (first, second) =>
         getValue(first) - getValue(second)
-    );
+      ),
+      ...deleted,
+    ];
+  };
 
   const sortTripSection = (
     tripIndex: number,
@@ -1517,14 +1554,8 @@ const confirmDelete = () => {
   if (!deleteTarget) return;
 
   if (deleteTarget.kind === "trip") {
-    setTrips((currentTrips) =>
-      withTripSortOrder(
-        currentTrips.filter(
-          (_, index) =>
-            index !==
-            deleteTarget.tripIndex
-        )
-      )
+    deleteTripAtIndex(
+      deleteTarget.tripIndex
     );
 
     setSelectedTripIndex(null);

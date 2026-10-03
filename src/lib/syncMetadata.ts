@@ -273,24 +273,28 @@ const mergeItemsByTimestamp = <
   cloudItems: T[] = [],
   localItems: T[] = []
 ) => {
+  const normalizedCloudItems =
+    cloudItems.map((item) =>
+      normalizeItemForSync(
+        section,
+        item
+      )
+    );
+  const normalizedLocalItems =
+    localItems.map((item) =>
+      normalizeItemForSync(
+        section,
+        item
+      )
+    );
   const mergedItems = new Map<
     string,
     T
   >();
 
   [
-    ...cloudItems.map((item) =>
-      normalizeItemForSync(
-        section,
-        item
-      )
-    ),
-    ...localItems.map((item) =>
-      normalizeItemForSync(
-        section,
-        item
-      )
-    ),
+    ...normalizedCloudItems,
+    ...normalizedLocalItems,
   ].forEach((item) => {
     const itemId = item.id;
 
@@ -315,7 +319,7 @@ const mergeItemsByTimestamp = <
   const mergedByIdentity =
     new Map<string, T>();
 
-  return Array.from(
+  const merged = Array.from(
     mergedItems.values()
   ).filter((item) => {
     const identityKey =
@@ -354,6 +358,60 @@ const mergeItemsByTimestamp = <
       mergedByIdentity.values()
     )
   );
+
+  const orderKeys = [
+    ...normalizedLocalItems,
+    ...normalizedCloudItems,
+  ]
+    .map((item) =>
+      itemIdentityKey(
+        section,
+        item as Record<
+          string,
+          unknown
+        >
+      ) || item.id
+    )
+    .filter(
+      (key): key is string =>
+        Boolean(key)
+    );
+  const uniqueOrderKeys = Array.from(
+    new Set(orderKeys)
+  );
+  const itemKey = (item: T) =>
+    itemIdentityKey(
+      section,
+      item as Record<
+        string,
+        unknown
+      >
+    ) || item.id;
+  const remainingItems = [...merged];
+  const orderedItems =
+    uniqueOrderKeys.flatMap((key) => {
+      const index =
+        remainingItems.findIndex(
+          (item) => itemKey(item) === key
+        );
+
+      if (index === -1) {
+        return [];
+      }
+
+      const [item] =
+        remainingItems.splice(
+          index,
+          1
+        );
+
+      return [item];
+    });
+
+  return [
+    ...orderedItems,
+    ...remainingItems,
+  ];
 };
 
 export const normalizeTripForSync = (

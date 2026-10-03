@@ -52,6 +52,9 @@ type DeletedTrip = {
 const deletedTripsStorageKey =
   "deletedTrips";
 
+const knownCloudTripIdsStorageKey =
+  "knownCloudTripIds";
+
 const serializeTrips = (trips: Trip[]) =>
   JSON.stringify(trips);
 
@@ -62,6 +65,77 @@ const tripMatchKey = (trip: Trip) =>
       .trim()
       .toLowerCase(),
   ].join("|");
+
+const readKnownCloudTripIds = () => {
+  const savedIds = localStorage.getItem(
+    knownCloudTripIdsStorageKey
+  );
+
+  if (!savedIds) {
+    return new Set<string>();
+  }
+
+  try {
+    const parsedIds = JSON.parse(
+      savedIds
+    ) as string[];
+
+    return new Set(parsedIds);
+  } catch {
+    return new Set<string>();
+  }
+};
+
+const rememberCloudTrips = (
+  trips: Trip[]
+) => {
+  const knownIds =
+    readKnownCloudTripIds();
+
+  trips.forEach((trip) => {
+    if (trip.id) {
+      knownIds.add(trip.id);
+    }
+  });
+
+  localStorage.setItem(
+    knownCloudTripIdsStorageKey,
+    JSON.stringify(
+      Array.from(knownIds)
+    )
+  );
+};
+
+const filterTripsDeletedFromCloud = (
+  localTrips: Trip[],
+  cloudTrips: Trip[],
+  includeUnknownCloudDeletions = false
+) => {
+  const knownCloudTripIds =
+    readKnownCloudTripIds();
+  const currentCloudTripIds = new Set(
+    cloudTrips
+      .map((trip) => trip.id)
+      .filter(
+        (id): id is string =>
+          Boolean(id)
+      )
+  );
+
+  return localTrips.filter(
+    (trip) =>
+      !(
+        trip.id &&
+        (includeUnknownCloudDeletions ||
+          knownCloudTripIds.has(
+            trip.id
+          )) &&
+        !currentCloudTripIds.has(
+          trip.id
+        )
+      )
+  );
+};
 
 const readDeletedTrips = () => {
   const savedDeletedTrips =
@@ -432,6 +506,7 @@ export const useCloudTrips = (
       try {
         const cloudTrips =
           await fetchTrips();
+        rememberCloudTrips(cloudTrips);
         const deletedTrips =
           readDeletedTrips();
         const activeCloudTrips =
@@ -440,7 +515,11 @@ export const useCloudTrips = (
             deletedTrips
           );
         const localTrips =
-          readLocalTrips();
+          filterTripsDeletedFromCloud(
+            readLocalTrips(),
+            cloudTrips,
+            !hasLoadedTrips.current
+          );
         const mergedTrips =
           migrateLocalTrips &&
           localTrips.length > 0
@@ -465,6 +544,9 @@ export const useCloudTrips = (
         if (shouldSaveMergedTrips) {
           assertTripsWereSaved(
             mergedTrips,
+            nextTrips
+          );
+          rememberCloudTrips(
             nextTrips
           );
           clearConfirmedDeletedTrips(
@@ -521,6 +603,7 @@ export const useCloudTrips = (
       try {
         const cloudTrips =
           await fetchTrips();
+        rememberCloudTrips(cloudTrips);
         const deletedTrips =
           readDeletedTrips();
         const activeCloudTrips =
@@ -529,7 +612,10 @@ export const useCloudTrips = (
             deletedTrips
           );
         const currentTrips =
-          latestTrips.current;
+          filterTripsDeletedFromCloud(
+            latestTrips.current,
+            cloudTrips
+          );
         const tripsToSave =
           mergeTripListsByTimestamp(
             activeCloudTrips,
@@ -537,6 +623,7 @@ export const useCloudTrips = (
           );
         const savedTrips =
           await saveTrips(tripsToSave);
+        rememberCloudTrips(savedTrips);
 
         assertTripsWereSaved(
           tripsToSave,
@@ -705,6 +792,7 @@ export const useCloudTrips = (
         try {
           const cloudTrips =
             await fetchTrips();
+          rememberCloudTrips(cloudTrips);
           const deletedTrips =
             readDeletedTrips();
           const activeCloudTrips =
@@ -715,12 +803,18 @@ export const useCloudTrips = (
           const tripsToSave =
             mergeTripListsByTimestamp(
               activeCloudTrips,
-              trips
+              filterTripsDeletedFromCloud(
+                trips,
+                cloudTrips
+              )
             );
           const savedTrips =
             await saveTrips(
               tripsToSave
             );
+          rememberCloudTrips(
+            savedTrips
+          );
           assertTripsWereSaved(
             tripsToSave,
             savedTrips

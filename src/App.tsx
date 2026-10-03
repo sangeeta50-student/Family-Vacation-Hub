@@ -3343,6 +3343,9 @@ const renderToggleButton = (
                 {
                   id: crypto.randomUUID(),
 
+                  localCreatedAt:
+                    new Date().toISOString(),
+
                   sortOrder:
                     currentTrips.length,
 

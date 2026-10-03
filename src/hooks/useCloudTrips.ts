@@ -123,17 +123,23 @@ const filterTripsDeletedFromCloud = (
   );
 
   return localTrips.filter(
-    (trip) =>
-      !(
-        trip.id &&
-        (includeUnknownCloudDeletions ||
-          knownCloudTripIds.has(
-            trip.id
-          )) &&
-        !currentCloudTripIds.has(
-          trip.id
-        )
-      )
+    (trip) => {
+      if (
+        !trip.id ||
+        currentCloudTripIds.has(trip.id)
+      ) {
+        return true;
+      }
+
+      if (trip.localCreatedAt) {
+        return true;
+      }
+
+      return !(
+        includeUnknownCloudDeletions ||
+        knownCloudTripIds.has(trip.id)
+      );
+    }
   );
 };
 
@@ -614,7 +620,8 @@ export const useCloudTrips = (
         const currentTrips =
           filterTripsDeletedFromCloud(
             latestTrips.current,
-            cloudTrips
+            cloudTrips,
+            true
           );
         const tripsToSave =
           mergeTripListsByTimestamp(
@@ -805,7 +812,8 @@ export const useCloudTrips = (
               activeCloudTrips,
               filterTripsDeletedFromCloud(
                 trips,
-                cloudTrips
+                cloudTrips,
+                true
               )
             );
           const savedTrips =

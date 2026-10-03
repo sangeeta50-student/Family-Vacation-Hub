@@ -41,6 +41,8 @@ export type CarRental = {
 export type Trip = {
   id?: string;
 
+  localCreatedAt?: string;
+
   sortOrder?: number;
 
   name: string;

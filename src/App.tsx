@@ -869,6 +869,7 @@ const saveActivity = () => {
                 index ===
                 editingActivityIndex
                   ? touchItem(
+                      "activities",
                       activityData,
                       activity
                     )
@@ -876,7 +877,10 @@ const saveActivity = () => {
             )
           : [
               ...currentActivities,
-              touchItem(activityData),
+              touchItem(
+                "activities",
+                activityData
+              ),
             ];
 
       return {
@@ -920,7 +924,10 @@ const importActivityDetails = () => {
         ...(selectedTrip.activities || []),
         ...parsedActivities.map(
           (activity) =>
-            touchItem(activity)
+            touchItem(
+              "activities",
+              activity
+            )
         ),
       ],
     })
@@ -970,6 +977,7 @@ const saveFlight = () => {
                 index ===
                 editingFlightIndex
                   ? touchItem(
+                      "flights",
                       flightData,
                       flight
                     )
@@ -977,7 +985,10 @@ const saveFlight = () => {
             )
           : [
               ...currentFlights,
-              touchItem(flightData),
+              touchItem(
+                "flights",
+                flightData
+              ),
             ];
 
       return {
@@ -1027,7 +1038,10 @@ const importFlightDetails = () => {
         ...(selectedTrip.flights || []),
         ...parsedFlights.map(
           (flight) =>
-            touchItem(flight)
+            touchItem(
+              "flights",
+              flight
+            )
         ),
       ],
     })
@@ -1083,6 +1097,7 @@ const saveHotel = () => {
                 index ===
                 editingHotelIndex
                   ? touchItem(
+                      "hotels",
                       hotelData,
                       hotel
                     )
@@ -1090,7 +1105,10 @@ const saveHotel = () => {
             )
           : [
               ...currentHotels,
-              touchItem(hotelData),
+              touchItem(
+                "hotels",
+                hotelData
+              ),
             ];
 
       return {
@@ -1125,7 +1143,10 @@ const importHotelDetails = () => {
         ...(selectedTrip.hotels || []),
         ...parsedHotels.map(
           (hotel) =>
-            touchItem(hotel)
+            touchItem(
+              "hotels",
+              hotel
+            )
         ),
       ],
     })
@@ -1190,6 +1211,7 @@ const saveCar = () => {
                 index ===
                 editingCarIndex
                   ? touchItem(
+                      "cars",
                       carData,
                       car
                     )
@@ -1197,7 +1219,10 @@ const saveCar = () => {
             )
           : [
               ...currentCars,
-              touchItem(carData),
+              touchItem(
+                "cars",
+                carData
+              ),
             ];
 
       return {
@@ -1229,7 +1254,7 @@ const importCarDetails = () => {
       cars: [
         ...(selectedTrip.cars || []),
         ...parsedCars.map((car) =>
-          touchItem(car)
+          touchItem("cars", car)
         ),
       ],
     })

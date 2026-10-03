@@ -100,6 +100,61 @@ const getExistingItemId = (
     ? item.id
     : undefined;
 
+const cleanKeyPart = (value: unknown) =>
+  typeof value === "string" &&
+  value.trim()
+    ? value.trim().toLowerCase()
+    : "";
+
+const keyFromParts = (
+  prefix: SectionKind,
+  parts: unknown[]
+) => {
+  const cleanedParts =
+    parts.map(cleanKeyPart);
+
+  return cleanedParts.some(Boolean)
+    ? `${prefix}:${cleanedParts.join("|")}`
+    : undefined;
+};
+
+const itemIdentityKey = (
+  section: SectionKind,
+  item: Record<string, unknown>
+) => {
+  if (section === "flights") {
+    return keyFromParts(section, [
+      item.flightNumber,
+      item.from,
+      item.to,
+      item.date,
+    ]);
+  }
+
+  if (section === "hotels") {
+    return keyFromParts(section, [
+      item.name,
+      item.address,
+      item.checkInDate,
+    ]);
+  }
+
+  if (section === "cars") {
+    return keyFromParts(section, [
+      item.company,
+      item.vehicle,
+      item.pickupDate,
+      item.pickupLocation,
+    ]);
+  }
+
+  return keyFromParts(section, [
+    item.name,
+    item.date,
+    item.location,
+  ]);
+};
+
 export const isDeletedItem = (
   item: SyncMetadata
 ) => Boolean(item.deletedAt);
@@ -128,6 +183,7 @@ export const visibleItemCount = <
 export const touchItem = <
   T extends object,
 >(
+  section: SectionKind,
   item: T,
   existingItem?: SyncMetadata
 ): T & SyncMetadata => ({
@@ -139,6 +195,12 @@ export const touchItem = <
     getExistingItemId(
       item as SyncMetadata
     ) ||
+    (existingItem
+      ? legacyItemId(
+          section,
+          existingItem
+        )
+      : undefined) ||
     crypto.randomUUID(),
   updatedAt: currentTimestamp(),
   deletedAt: undefined,
@@ -250,8 +312,47 @@ const mergeItemsByTimestamp = <
     );
   });
 
+  const mergedByIdentity =
+    new Map<string, T>();
+
   return Array.from(
     mergedItems.values()
+  ).filter((item) => {
+    const identityKey =
+      itemIdentityKey(
+        section,
+        item as Record<
+          string,
+          unknown
+        >
+      );
+
+    if (!identityKey) {
+      return true;
+    }
+
+    const existingItem =
+      mergedByIdentity.get(
+        identityKey
+      );
+    const nextItem =
+      existingItem
+        ? chooseNewestItem(
+            existingItem,
+            item
+          )
+        : item;
+
+    mergedByIdentity.set(
+      identityKey,
+      nextItem
+    );
+
+    return false;
+  }).concat(
+    Array.from(
+      mergedByIdentity.values()
+    )
   );
 };
 

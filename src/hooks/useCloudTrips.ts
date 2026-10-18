@@ -287,6 +287,8 @@ const sameDetails = (
   first: Trip,
   second: Trip
 ) =>
+  first.name === second.name &&
+  (first.destinationCity || "") === (second.destinationCity || "") &&
   stableStringify(first.flights || []) ===
     stableStringify(second.flights || []) &&
   stableStringify(first.hotels || []) ===

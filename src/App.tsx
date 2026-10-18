@@ -3450,6 +3450,7 @@ const renderToggleButton = (
               (trip) => ({
                 ...trip,
                 name: renameTripName,
+                localNameUpdatedAt: new Date().toISOString(),
               })
             );
             setRenameTripIndex(null);

@@ -450,6 +450,12 @@ const mergeTripDetails = (
   localTrip: Trip
 ): Trip => ({
   ...cloudTrip,
+  ...(localTrip.localNameUpdatedAt
+    ? {
+        name: localTrip.name,
+        localNameUpdatedAt: localTrip.localNameUpdatedAt,
+      }
+    : {}),
   destinationCity:
     localTrip.destinationCity ||
     cloudTrip.destinationCity,

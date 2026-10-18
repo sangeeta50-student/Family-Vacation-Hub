@@ -3,8 +3,12 @@ import type { Flight } from "../types/Flight";
 export function parseFlights(text: string): Flight[] {
   const flights: Flight[] = [];
 
-  const sections =
+  const headedSections =
     text.split(/Flight to /i).slice(1);
+  const sections =
+    headedSections.length > 0
+      ? headedSections
+      : [text];
 
   for (const section of sections) {
     const flightMatch =

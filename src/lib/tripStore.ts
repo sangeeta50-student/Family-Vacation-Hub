@@ -17,6 +17,8 @@ type TripRow = {
 
 const tableName = "family_trips";
 let supportsSortOrder = true;
+const missingTripOrderMessage =
+  "Trip order could not be saved. Please apply the trip-order database update.";
 
 const requireSupabase = () => {
   if (!supabase) {
@@ -129,9 +131,14 @@ export const fetchTrips = async () => {
 };
 
 export const saveTrips = async (
-  trips: Trip[]
+  trips: Trip[],
+  requireSortOrder = false
 ) => {
   const client = requireSupabase();
+
+  if (requireSortOrder && !supportsSortOrder) {
+    throw new Error(missingTripOrderMessage);
+  }
   const tripsWithOrder = trips.map(
     (trip, index) => ({
       ...trip,
@@ -193,6 +200,10 @@ export const saveTrips = async (
       ) {
         supportsSortOrder = false;
 
+        if (requireSortOrder) {
+          throw new Error(missingTripOrderMessage);
+        }
+
         const retry =
           await client
             .from(tableName)
@@ -244,6 +255,10 @@ export const saveTrips = async (
       ) {
         supportsSortOrder = false;
 
+        if (requireSortOrder) {
+          throw new Error(missingTripOrderMessage);
+        }
+
         const retry =
           await client
             .from(tableName)
@@ -286,6 +301,13 @@ export const saveTrips = async (
     if (deleteError) {
       throw deleteError;
     }
+  }
+
+  if (
+    requireSortOrder &&
+    savedTrips.some((trip, index) => trip.sortOrder !== index)
+  ) {
+    throw new Error("Supabase did not confirm the new trip order. Please try Sync Now again.");
   }
 
   return savedTrips;

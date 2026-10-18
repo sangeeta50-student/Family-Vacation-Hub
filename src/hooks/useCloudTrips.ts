@@ -15,6 +15,7 @@ import {
   saveTrips,
 } from "../lib/tripStore";
 import {
+  hasTripOrderChanged,
   mergeTripListsByTimestamp,
   normalizeTripForSync,
 } from "../lib/syncMetadata";
@@ -54,6 +55,18 @@ const deletedTripsStorageKey =
 
 const knownCloudTripIdsStorageKey =
   "knownCloudTripIds";
+
+const pendingTripOrderStorageKey =
+  `pendingTripOrder:${familyId}`;
+
+const confirmTripOrder = (revision: string | null) => {
+  if (
+    revision &&
+    localStorage.getItem(pendingTripOrderStorageKey) === revision
+  ) {
+    localStorage.removeItem(pendingTripOrderStorageKey);
+  }
+};
 
 const serializeTrips = (trips: Trip[]) =>
   JSON.stringify(trips);
@@ -465,6 +478,13 @@ export const useCloudTrips = (
         normalizeTripForSync
       );
 
+    if (
+      typeof nextTrips === "function" &&
+      hasTripOrderChanged(previousTrips, normalizedTrips)
+    ) {
+      localStorage.setItem(pendingTripOrderStorageKey, crypto.randomUUID());
+    }
+
     if (hasLoadedTrips.current) {
       recordDeletedTrips(
         previousTrips,
@@ -509,9 +529,21 @@ export const useCloudTrips = (
       setStatus("loading");
       setErrorMessage("");
 
+      let orderRevision = localStorage.getItem(pendingTripOrderStorageKey);
+      const loadingSnapshot = serializeTrips(latestTrips.current);
+
       try {
         const cloudTrips =
           await fetchTrips();
+
+        if (
+          !migrateLocalTrips &&
+          serializeTrips(latestTrips.current) !== loadingSnapshot
+        ) {
+          return;
+        }
+
+        orderRevision = localStorage.getItem(pendingTripOrderStorageKey);
         rememberCloudTrips(cloudTrips);
         const deletedTrips =
           readDeletedTrips();
@@ -531,7 +563,8 @@ export const useCloudTrips = (
           localTrips.length > 0
             ? mergeTripListsByTimestamp(
                 activeCloudTrips,
-                localTrips
+                localTrips,
+                Boolean(orderRevision)
               )
             : activeCloudTrips.map(
                 normalizeTripForSync
@@ -544,7 +577,7 @@ export const useCloudTrips = (
             serializeTrips(cloudTrips);
         const nextTrips =
           shouldSaveMergedTrips
-            ? await saveTrips(mergedTrips)
+            ? await saveTrips(mergedTrips, Boolean(orderRevision))
             : mergedTrips;
 
         if (shouldSaveMergedTrips) {
@@ -560,6 +593,7 @@ export const useCloudTrips = (
           );
         }
 
+        confirmTripOrder(orderRevision);
         setTrips(nextTrips);
         localStorage.setItem(
           "trips",
@@ -578,8 +612,8 @@ export const useCloudTrips = (
           lastSavedTrips.current =
             serializeTrips(localTrips);
           hasLoadedTrips.current = true;
-          setStatus("cached");
-          setErrorMessage("");
+          setStatus(orderRevision ? "error" : "cached");
+          setErrorMessage(orderRevision ? getErrorMessage(error, "Could not save trip order.") : "");
           return;
         }
 
@@ -609,6 +643,7 @@ export const useCloudTrips = (
       try {
         const cloudTrips =
           await fetchTrips();
+        const orderRevision = localStorage.getItem(pendingTripOrderStorageKey);
         rememberCloudTrips(cloudTrips);
         const deletedTrips =
           readDeletedTrips();
@@ -623,13 +658,15 @@ export const useCloudTrips = (
             cloudTrips,
             true
           );
+        const syncSnapshot = serializeTrips(latestTrips.current);
         const tripsToSave =
           mergeTripListsByTimestamp(
             activeCloudTrips,
-            currentTrips
+            currentTrips,
+            Boolean(orderRevision)
           );
         const savedTrips =
-          await saveTrips(tripsToSave);
+          await saveTrips(tripsToSave, Boolean(orderRevision));
         rememberCloudTrips(savedTrips);
 
         assertTripsWereSaved(
@@ -637,8 +674,14 @@ export const useCloudTrips = (
           savedTrips
         );
 
+        confirmTripOrder(orderRevision);
         const savedTripsJson =
           serializeTrips(savedTrips);
+
+        if (serializeTrips(latestTrips.current) !== syncSnapshot) {
+          setTrips([...latestTrips.current]);
+          return;
+        }
 
         clearConfirmedDeletedTrips(
           savedTrips
@@ -720,6 +763,26 @@ export const useCloudTrips = (
   }, [loadTrips, session]);
 
   useEffect(() => {
+    if (!session) return;
+
+    const refreshTrips = () => {
+      if (document.visibilityState === "visible") {
+        void loadTrips(false);
+      }
+    };
+
+    window.addEventListener("focus", refreshTrips);
+    window.addEventListener("online", refreshTrips);
+    document.addEventListener("visibilitychange", refreshTrips);
+
+    return () => {
+      window.removeEventListener("focus", refreshTrips);
+      window.removeEventListener("online", refreshTrips);
+      document.removeEventListener("visibilitychange", refreshTrips);
+    };
+  }, [loadTrips, session]);
+
+  useEffect(() => {
     if (!session || !supabase) {
       return;
     }
@@ -795,6 +858,7 @@ export const useCloudTrips = (
     saveTimer.current =
       window.setTimeout(async () => {
         saveTimer.current = null;
+        const orderRevision = localStorage.getItem(pendingTripOrderStorageKey);
 
         try {
           const cloudTrips =
@@ -814,11 +878,13 @@ export const useCloudTrips = (
                 trips,
                 cloudTrips,
                 true
-              )
+              ),
+              Boolean(orderRevision)
             );
           const savedTrips =
             await saveTrips(
-              tripsToSave
+              tripsToSave,
+              Boolean(orderRevision)
             );
           rememberCloudTrips(
             savedTrips
@@ -828,6 +894,7 @@ export const useCloudTrips = (
             savedTrips
           );
 
+          confirmTripOrder(orderRevision);
           const savedTripsJson =
             serializeTrips(savedTrips);
           const latestTripsJson =

@@ -484,10 +484,26 @@ const tripMatchKey = (trip: Trip) =>
       .toLowerCase(),
   ].join("|");
 
+export const hasTripOrderChanged = (
+  previousTrips: Trip[],
+  nextTrips: Trip[]
+) => {
+  const key = (trip: Trip) =>
+    trip.id || tripMatchKey(trip);
+  const previousKeys = previousTrips.map(key);
+  const nextKeys = nextTrips.map(key);
+  const previousSet = new Set(previousKeys);
+  const nextSet = new Set(nextKeys);
+
+  return JSON.stringify(previousKeys.filter((id) => nextSet.has(id))) !==
+    JSON.stringify(nextKeys.filter((id) => previousSet.has(id)));
+};
+
 export const mergeTripListsByTimestamp =
   (
     cloudTrips: Trip[],
-    localTrips: Trip[]
+    localTrips: Trip[],
+    preferLocalOrder = false
   ) => {
     const normalizedCloudTrips =
       cloudTrips.map(
@@ -555,8 +571,27 @@ export const mergeTripListsByTimestamp =
           )
       );
 
-    return [
+    const allTrips = [
       ...mergedTrips,
       ...localOnlyTrips,
     ];
+
+    if (!preferLocalOrder) {
+      return allTrips;
+    }
+
+    const localPositions = new Map(
+      normalizedLocalTrips.flatMap((trip, index) => [
+        [trip.id || tripMatchKey(trip), index] as const,
+        [tripMatchKey(trip), index] as const,
+      ])
+    );
+    const position = (trip: Trip) =>
+      (trip.id ? localPositions.get(trip.id) : undefined) ??
+      localPositions.get(tripMatchKey(trip)) ??
+      Number.MAX_SAFE_INTEGER;
+
+    return allTrips
+      .sort((first, second) => position(first) - position(second))
+      .map((trip, index) => ({ ...trip, sortOrder: index }));
   };

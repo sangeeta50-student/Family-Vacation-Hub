@@ -691,6 +691,10 @@ function App() {
   setFlightDate] =
   useState("");
 
+  const [flightArrivalDate,
+  setFlightArrivalDate] =
+  useState("");
+
   const [flightDeparture,
   setFlightDeparture] =
   useState("");
@@ -988,6 +992,7 @@ const saveFlight = () => {
   from: flightFrom,
   to: flightTo,
   date: flightDate,
+  arrivalDate: flightArrivalDate,
   departureTime:
     flightDeparture,
   arrivalTime:
@@ -1039,6 +1044,7 @@ const saveFlight = () => {
   setFlightFrom("");
   setFlightTo("");
   setFlightDate("");
+  setFlightArrivalDate("");
   setFlightDeparture("");
   setFlightArrival("");
   setFlightDuration("");
@@ -1458,6 +1464,10 @@ const editFlight = (
 
   setFlightDate(
     flight.date || ""
+  );
+
+  setFlightArrivalDate(
+    flight.arrivalDate || ""
   );
 
   setFlightDeparture(
@@ -2049,6 +2059,7 @@ const renderToggleButton = (
   setFlightFrom("");
   setFlightTo("");
   setFlightDate("");
+  setFlightArrivalDate("");
   setFlightDeparture("");
   setFlightArrival("");
   setFlightDuration("");
@@ -2386,50 +2397,52 @@ const renderToggleButton = (
     />
   </div>
 
-  <div
-    style={{
-      display: "flex",
-      gap: "12px",
-    }}
-  >
-    <input
-      placeholder="Date"
-      value={flightDate}
-      onChange={(e) =>
-        setFlightDate(
-          e.target.value
-        )
-      }
-      style={{
-        width: "160px",
-      }}
-    />
+  <div className="flight-date-time-row">
+    <label>
+      Departure date
+      <input
+        placeholder="Departure date"
+        value={flightDate}
+        onChange={(e) =>
+          setFlightDate(e.target.value)
+        }
+      />
+    </label>
 
-    <input
-      placeholder="Departure"
-      value={flightDeparture}
-      onChange={(e) =>
-        setFlightDeparture(
-          e.target.value
-        )
-      }
-      style={{
-        width: "160px",
-      }}
-    />
+    <label>
+      Departure time
+      <input
+        placeholder="Departure time"
+        value={flightDeparture}
+        onChange={(e) =>
+          setFlightDeparture(e.target.value)
+        }
+      />
+    </label>
+  </div>
 
-    <input
-      placeholder="Arrival"
-      value={flightArrival}
-      onChange={(e) =>
-        setFlightArrival(
-          e.target.value
-        )
-      }
-      style={{
-        width: "160px",
-      }}
-    />
+  <div className="flight-date-time-row">
+    <label>
+      Arrival date
+      <input
+        placeholder="Arrival date"
+        value={flightArrivalDate}
+        onChange={(e) =>
+          setFlightArrivalDate(e.target.value)
+        }
+      />
+    </label>
+
+    <label>
+      Arrival time
+      <input
+        placeholder="Arrival time"
+        value={flightArrival}
+        onChange={(e) =>
+          setFlightArrival(e.target.value)
+        }
+      />
+    </label>
   </div>
 
   <input

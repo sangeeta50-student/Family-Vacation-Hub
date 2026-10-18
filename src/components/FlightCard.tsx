@@ -24,24 +24,27 @@ function FlightCard({
       }}
     >
       <h3>✈ {flight.flightNumber}</h3>
-      {flight.date && (
-  <p>
-    📅 {flight.date}
-  </p>
-)}
-
       <p>
         {flight.from} → {flight.to}
       </p>
 
-      {flight.departureTime &&
-        flight.arrivalTime && (
-          <p>
-            🕒 {flight.departureTime}
-            {" → "}
-            {flight.arrivalTime}
-          </p>
-        )}
+      {(flight.date || flight.departureTime) && (
+        <p>
+          <strong>Departure:</strong>{" "}
+          {[flight.date, flight.departureTime]
+            .filter(Boolean)
+            .join(" at ")}
+        </p>
+      )}
+
+      {(flight.arrivalDate || flight.arrivalTime) && (
+        <p>
+          <strong>Arrival:</strong>{" "}
+          {[flight.arrivalDate, flight.arrivalTime]
+            .filter(Boolean)
+            .join(" at ")}
+        </p>
+      )}
 
       {flight.duration && (
         <p>

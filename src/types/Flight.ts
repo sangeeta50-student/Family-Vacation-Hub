@@ -13,6 +13,8 @@ export type Flight = {
 
   date?: string;
 
+  arrivalDate?: string;
+
   departureTime?: string;
 
   arrivalTime?: string;

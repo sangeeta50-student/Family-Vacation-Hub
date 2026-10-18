@@ -82,6 +82,18 @@ button {
   min-width: 0;
 }
 
+.flight-date-time-row {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.flight-date-time-row label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
 .checkbox-row label {
   align-items: center;
   display: inline-flex;

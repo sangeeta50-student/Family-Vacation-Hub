@@ -1,4 +1,5 @@
 import { familyId, supabase } from "./supabase";
+import { withRequestTimeout } from "./requestTimeout";
 import type { Trip } from "../types/Trip";
 
 type TripRow = {
@@ -108,7 +109,7 @@ const sortTrips = (trips: Trip[]) =>
         Number.MAX_SAFE_INTEGER)
   );
 
-export const fetchTrips = async () => {
+export const fetchTrips = async () => withRequestTimeout(async (signal) => {
   const client = requireSupabase();
 
   const { data, error } = await client
@@ -117,7 +118,8 @@ export const fetchTrips = async () => {
     .eq("family_id", familyId)
     .order("created_at", {
       ascending: true,
-    });
+    })
+    .abortSignal(signal);
 
   if (error) {
     throw error;
@@ -128,12 +130,12 @@ export const fetchTrips = async () => {
       rowToTrip(row as TripRow)
     )
   );
-};
+});
 
 export const saveTrips = async (
   trips: Trip[],
   requireSortOrder = false
-) => {
+) => withRequestTimeout(async (signal) => {
   const client = requireSupabase();
 
   if (requireSortOrder && !supportsSortOrder) {
@@ -150,7 +152,8 @@ export const saveTrips = async (
     await client
       .from(tableName)
       .select("id")
-      .eq("family_id", familyId);
+      .eq("family_id", familyId)
+      .abortSignal(signal);
 
   if (error) {
     throw error;
@@ -189,6 +192,7 @@ export const saveTrips = async (
           .eq("id", trip.id)
           .eq("family_id", familyId)
           .select("*")
+          .abortSignal(signal)
           .single();
 
       if (
@@ -219,6 +223,7 @@ export const saveTrips = async (
               familyId
             )
             .select("*")
+            .abortSignal(signal)
             .single();
 
         data = retry.data;
@@ -244,6 +249,7 @@ export const saveTrips = async (
             )
           )
           .select("*")
+          .abortSignal(signal)
           .single();
 
       if (
@@ -269,6 +275,7 @@ export const saveTrips = async (
               )
             )
             .select("*")
+            .abortSignal(signal)
             .single();
 
         data = retry.data;
@@ -296,7 +303,8 @@ export const saveTrips = async (
         .from(tableName)
         .delete()
         .eq("family_id", familyId)
-        .in("id", deletedIds);
+        .in("id", deletedIds)
+        .abortSignal(signal);
 
     if (deleteError) {
       throw deleteError;
@@ -311,4 +319,4 @@ export const saveTrips = async (
   }
 
   return savedTrips;
-};
+});

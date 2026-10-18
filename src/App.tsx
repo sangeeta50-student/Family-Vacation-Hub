@@ -125,6 +125,7 @@ function App() {
     status: cloudStatus,
     errorMessage: cloudErrorMessage,
     isLoading: isTripsLoading,
+    isSyncingNow,
     syncTripsNow,
     deleteTripAtIndex,
   } = useCloudTrips(
@@ -1850,16 +1851,18 @@ const renderToggleButton = (
           </span>
 
           <button
+            aria-busy={isSyncingNow}
             disabled={
-              cloudStatus === "saving" ||
+              isSyncingNow ||
               isTripsLoading
             }
             onClick={() => {
               void syncTripsNow();
             }}
+            style={{ minWidth: "100px" }}
             type="button"
           >
-            Sync Now
+            {isSyncingNow ? "Syncing..." : "Sync Now"}
           </button>
 
           <button

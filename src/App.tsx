@@ -97,7 +97,7 @@ function App() {
   const [isMfaVerified, setIsMfaVerified] =
   useState(false);
 
-  const [defaultExpanded] =
+  const [defaultItemsExpanded] =
   useState(() => {
     if (typeof window === "undefined") {
       return true;
@@ -181,10 +181,10 @@ function App() {
     )}-${itemIndex}`;
 
   const isSectionOpen = (key: string) =>
-    openSections[key] ?? defaultExpanded;
+    openSections[key] ?? false;
 
   const isItemOpen = (key: string) =>
-    openItems[key] ?? defaultExpanded;
+    openItems[key] ?? defaultItemsExpanded;
 
   const toggleSection = (key: string) => {
     setOpenSections((current) => ({
@@ -1721,6 +1721,7 @@ const renderToggleButton = (
   className: string
 ) => (
   <button
+    aria-expanded={isOpen}
     className={className}
     onClick={(event) => {
       event.stopPropagation();

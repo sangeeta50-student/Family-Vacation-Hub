@@ -445,6 +445,7 @@ const clearConfirmedDeletedTrips = (
 export const useCloudTrips = (
   session: Session | null
 ) => {
+  const sessionUserId = session?.user.id ?? null;
   const [trips, setTripsState] =
     useState<Trip[]>(readLocalTrips);
   const [status, setStatus] =
@@ -514,7 +515,7 @@ export const useCloudTrips = (
 
   const loadTrips = useCallback(
     async (migrateLocalTrips = false) => {
-      if (!session || !supabase || syncInFlight.current) {
+      if (!sessionUserId || !supabase || syncInFlight.current) {
         return;
       }
 
@@ -635,12 +636,16 @@ export const useCloudTrips = (
         setIsLoading(false);
       }
     },
-    [session, setTrips]
+    [sessionUserId, setTrips]
   );
 
   const syncTripsNow = useCallback(
     async (manual = true) => {
-      if (!session || !supabase) {
+      if (!sessionUserId || !supabase) {
+        if (manual) {
+          setStatus("error");
+          setErrorMessage("Please sign in and complete two-factor authentication before syncing.");
+        }
         return;
       }
 
@@ -707,7 +712,7 @@ export const useCloudTrips = (
         if (manual) setIsSyncingNow(false);
       }
     },
-    [session, setTrips]
+    [sessionUserId, setTrips]
   );
 
   const deleteTripAtIndex = useCallback(
@@ -750,7 +755,7 @@ export const useCloudTrips = (
   useEffect(() => {
     hasLoadedTrips.current = false;
 
-    if (session) {
+    if (sessionUserId) {
       const timer = window.setTimeout(
         () => {
           void loadTrips(true);
@@ -762,10 +767,10 @@ export const useCloudTrips = (
         window.clearTimeout(timer);
       };
     }
-  }, [loadTrips, session]);
+  }, [loadTrips, sessionUserId]);
 
   useEffect(() => {
-    if (!session) return;
+    if (!sessionUserId) return;
 
     const refreshTrips = () => {
       if (document.visibilityState === "visible") {
@@ -782,10 +787,10 @@ export const useCloudTrips = (
       window.removeEventListener("online", refreshTrips);
       document.removeEventListener("visibilitychange", refreshTrips);
     };
-  }, [loadTrips, session]);
+  }, [loadTrips, sessionUserId]);
 
   useEffect(() => {
-    if (!session || !supabase) {
+    if (!sessionUserId || !supabase) {
       return;
     }
 
@@ -829,11 +834,11 @@ export const useCloudTrips = (
 
       void client.removeChannel(channel);
     };
-  }, [loadTrips, session]);
+  }, [loadTrips, sessionUserId]);
 
   useEffect(() => {
     if (
-      !session ||
+      !sessionUserId ||
       !hasLoadedTrips.current
     ) {
       return;
@@ -870,7 +875,7 @@ export const useCloudTrips = (
         );
       }
     };
-  }, [session, syncTripsNow, trips]);
+  }, [sessionUserId, syncTripsNow, trips]);
 
   return {
     trips,

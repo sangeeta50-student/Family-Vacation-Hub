@@ -37,6 +37,7 @@ import { parseActivities } from "./parsers/activityParser";
 import { useCloudTrips } from "./hooks/useCloudTrips";
 
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
+import { getSessionVerificationKey } from "./lib/authSession";
 import {
   isDeletedItem,
   markItemDeleted,
@@ -97,6 +98,18 @@ function App() {
   const [isMfaVerified, setIsMfaVerified] =
   useState(false);
 
+  const authSessionKey = useRef<string | null>(null);
+  const applyAuthSession = useCallback((nextSession: Session | null) => {
+    const nextKey = getSessionVerificationKey(nextSession);
+    if (!nextKey || nextKey !== authSessionKey.current) {
+      setIsMfaVerified(false);
+    }
+    authSessionKey.current = nextKey;
+    setSession(nextSession);
+    setIsAuthReady(true);
+  }, []);
+  const mfaSessionKey = getSessionVerificationKey(session) ?? "unverified";
+
   const [defaultItemsExpanded] =
   useState(() => {
     if (typeof window === "undefined") {
@@ -137,8 +150,10 @@ function App() {
 
   const handleMfaVerified =
   useCallback(() => {
-    setIsMfaVerified(true);
-  }, []);
+    if (authSessionKey.current === mfaSessionKey) {
+      setIsMfaVerified(true);
+    }
+  }, [mfaSessionKey]);
 
   const handlePasswordSet =
   useCallback(async () => {
@@ -149,9 +164,9 @@ function App() {
     const { data } =
       await supabase.auth.getSession();
 
-    setSession(data.session);
+    applyAuthSession(data.session);
     setIsMfaVerified(true);
-  }, []);
+  }, [applyAuthSession]);
 
   const getTripKey = (
     trip: Trip,
@@ -856,27 +871,23 @@ useEffect(() => {
   supabase.auth
     .getSession()
     .then(({ data }) => {
-      setSession(data.session);
-      setIsAuthReady(true);
+      applyAuthSession(data.session);
     });
 
   const { data } =
     supabase.auth.onAuthStateChange(
       (_event, nextSession) => {
-        setSession(nextSession);
-        setIsMfaVerified(false);
-        setIsAuthReady(true);
+        applyAuthSession(nextSession);
       }
     );
 
   return () => {
     data.subscription.unsubscribe();
   };
-}, []);
+}, [applyAuthSession]);
 
 const signOut = () => {
-  setSession(null);
-  setIsMfaVerified(false);
+  applyAuthSession(null);
   void supabase?.auth.signOut();
 };
 
@@ -1763,6 +1774,7 @@ const renderToggleButton = (
   if (!hasConfiguredPassword) {
     return (
       <MfaGate
+        key={mfaSessionKey}
         onVerified={handleMfaVerified}
       >
         <PasswordSetupGate
@@ -1775,6 +1787,7 @@ const renderToggleButton = (
 
   return (
     <MfaGate
+      key={mfaSessionKey}
       onVerified={handleMfaVerified}
     >
     <div

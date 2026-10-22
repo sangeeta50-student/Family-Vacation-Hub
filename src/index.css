@@ -253,6 +253,30 @@ button {
   margin-bottom: 0;
 }
 
+.activity-item-header {
+  align-items: start;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-bottom: 8px;
+}
+
+.activity-item-header > .item-toggle {
+  margin-bottom: 0;
+}
+
+.activity-order-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.activity-order-controls .trip-order-button {
+  height: 44px;
+  min-height: 44px;
+  touch-action: manipulation;
+  width: 44px;
+}
+
 @media (max-width: 640px) {
   .app-shell {
     padding: 12px !important;

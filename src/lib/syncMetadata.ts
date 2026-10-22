@@ -271,7 +271,8 @@ const mergeItemsByTimestamp = <
 >(
   section: SectionKind,
   cloudItems: T[] = [],
-  localItems: T[] = []
+  localItems: T[] = [],
+  preferLocalOrder = true
 ) => {
   const normalizedCloudItems =
     cloudItems.map((item) =>
@@ -322,6 +323,9 @@ const mergeItemsByTimestamp = <
   const merged = Array.from(
     mergedItems.values()
   ).filter((item) => {
+    // Separate activities may share a name, date, and location; their IDs distinguish them.
+    if (section === "activities") return true;
+
     const identityKey =
       itemIdentityKey(
         section,
@@ -359,19 +363,17 @@ const mergeItemsByTimestamp = <
     )
   );
 
-  const orderKeys = [
-    ...normalizedLocalItems,
-    ...normalizedCloudItems,
-  ]
-    .map((item) =>
-      itemIdentityKey(
-        section,
-        item as Record<
-          string,
-          unknown
-        >
-      ) || item.id
-    )
+  const itemKey = (item: T) =>
+    (section === "activities" ? item.id : undefined) ||
+    itemIdentityKey(
+      section,
+      item as Record<string, unknown>
+    ) || item.id;
+  const orderSources = preferLocalOrder
+    ? [...normalizedLocalItems, ...normalizedCloudItems]
+    : [...normalizedCloudItems, ...normalizedLocalItems];
+  const orderKeys = orderSources
+    .map(itemKey)
     .filter(
       (key): key is string =>
         Boolean(key)
@@ -379,14 +381,6 @@ const mergeItemsByTimestamp = <
   const uniqueOrderKeys = Array.from(
     new Set(orderKeys)
   );
-  const itemKey = (item: T) =>
-    itemIdentityKey(
-      section,
-      item as Record<
-        string,
-        unknown
-      >
-    ) || item.id;
   const remainingItems = [...merged];
   const orderedItems =
     uniqueOrderKeys.flatMap((key) => {
@@ -456,6 +450,9 @@ const mergeTripDetails = (
         localNameUpdatedAt: localTrip.localNameUpdatedAt,
       }
     : {}),
+  ...(localTrip.localActivityOrderUpdatedAt
+    ? { localActivityOrderUpdatedAt: localTrip.localActivityOrderUpdatedAt }
+    : {}),
   destinationCity:
     localTrip.destinationCity ||
     cloudTrip.destinationCity,
@@ -478,7 +475,8 @@ const mergeTripDetails = (
     mergeItemsByTimestamp(
       "activities",
       cloudTrip.activities,
-      localTrip.activities
+      localTrip.activities,
+      Boolean(localTrip.localActivityOrderUpdatedAt)
     ),
 });
 

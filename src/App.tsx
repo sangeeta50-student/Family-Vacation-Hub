@@ -38,6 +38,7 @@ import { useCloudTrips } from "./hooks/useCloudTrips";
 
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
 import { getSessionVerificationKey } from "./lib/authSession";
+import { dateSortValue } from "./lib/dateSort";
 import {
   isDeletedItem,
   markItemDeleted,
@@ -262,51 +263,6 @@ function App() {
       .filter(Boolean)
       .join(" • ");
 
-  const dateSortValue = (
-    date?: string,
-    time?: string
-  ) => {
-    const cleanedDate = (date || "")
-      .replace(/[\u00a0\u202f]/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-
-    if (!cleanedDate) {
-      return Number.POSITIVE_INFINITY;
-    }
-
-    const cleanedTime = (time || "")
-      .replace(/[\u00a0\u202f]/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    const dateText = cleanedDate.replace(
-      /^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)(day)?,?\s+/i,
-      ""
-    );
-    const dateWithYear =
-      /\b\d{4}\b/.test(dateText) ||
-      /^\d{4}-\d{1,2}-\d{1,2}$/.test(
-        dateText
-      )
-        ? dateText
-        : `${dateText}, ${new Date().getFullYear()}`;
-    const parsedDate = Date.parse(
-      dateWithYear
-    );
-    const parsedDateTime = Date.parse(
-      `${dateWithYear} ${cleanedTime}`.trim()
-    );
-    const parsed = Number.isNaN(
-      parsedDateTime
-    )
-      ? parsedDate
-      : parsedDateTime;
-
-    return Number.isNaN(parsed)
-      ? Number.POSITIVE_INFINITY
-      : parsed;
-  };
-
   const sortByDate = <
     T extends { deletedAt?: string },
   >(
@@ -386,6 +342,7 @@ function App() {
       if (section === "activities") {
         updatedTrips[tripIndex] = {
           ...trip,
+          localActivityOrderUpdatedAt: new Date().toISOString(),
           activities: sortByDate(
             trip.activities || [],
             (activity) =>
@@ -468,6 +425,32 @@ function App() {
         updateTrip(selectedTrip);
 
       return updatedTrips;
+    });
+  };
+
+  const moveActivity = (
+    tripIndex: number,
+    activityIndex: number,
+    direction: -1 | 1
+  ) => {
+    updateTripAtIndex(tripIndex, (trip) => {
+      const activities = trip.activities || [];
+      const visible = visibleItems(activities);
+      const position = visible.findIndex(({ index }) => index === activityIndex);
+      if (position < 0) return trip;
+
+      const neighbor = visible[position + direction];
+      if (!neighbor) return trip;
+
+      const nextActivities = [...activities];
+      [nextActivities[activityIndex], nextActivities[neighbor.index]] =
+        [nextActivities[neighbor.index], nextActivities[activityIndex]];
+
+      return {
+        ...trip,
+        activities: nextActivities,
+        localActivityOrderUpdatedAt: new Date().toISOString(),
+      };
     });
   };
 
@@ -3243,7 +3226,7 @@ const renderToggleButton = (
               }}
               type="button"
             >
-              Sort Activities by Date
+              Sort Activities by Date &amp; Time
             </button>
 
             {visibleActivities.length ? (
@@ -3252,10 +3235,13 @@ const renderToggleButton = (
                   {
                     item: activity,
                     index: activityIndex,
-                  }
+                  },
+                  activityPosition
                 ) => {
                   const itemKey =
-                    getItemKey(
+                    activity.id
+                      ? `${activitySectionKey}-${activity.id}`
+                      : getItemKey(
                       trip,
                       index,
                       "activities",
@@ -3269,17 +3255,47 @@ const renderToggleButton = (
                       className="collapsible-item"
                       key={itemKey}
                     >
-                      {renderToggleButton(
-                        activitySummary(
-                          activity
-                        ),
-                        itemOpen,
-                        () =>
-                          toggleItem(
-                            itemKey
-                          ),
-                        "item-toggle"
-                      )}
+                      <div className="activity-item-header">
+                        {renderToggleButton(
+                          activitySummary(activity),
+                          itemOpen,
+                          () => toggleItem(itemKey),
+                          "item-toggle"
+                        )}
+
+                        <div
+                          className="activity-order-controls"
+                          role="group"
+                          aria-label={`Order ${activity.name}`}
+                        >
+                          <button
+                            className="trip-order-button"
+                            aria-label={`Move ${activity.name} up`}
+                            title="Move activity up"
+                            disabled={activityPosition === 0}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              moveActivity(index, activityIndex, -1);
+                            }}
+                            type="button"
+                          >
+                            ↑
+                          </button>
+                          <button
+                            className="trip-order-button"
+                            aria-label={`Move ${activity.name} down`}
+                            title="Move activity down"
+                            disabled={activityPosition === visibleActivities.length - 1}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              moveActivity(index, activityIndex, 1);
+                            }}
+                            type="button"
+                          >
+                            ↓
+                          </button>
+                        </div>
+                      </div>
 
                       {itemOpen && (
                         <ActivityCard

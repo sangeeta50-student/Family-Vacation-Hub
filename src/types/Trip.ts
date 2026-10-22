@@ -46,6 +46,8 @@ export type Trip = {
   // Cleared when Supabase acknowledges the renamed trip.
   localNameUpdatedAt?: string;
 
+  localActivityOrderUpdatedAt?: string;
+
   sortOrder?: number;
 
   name: string;
